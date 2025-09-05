@@ -3,30 +3,27 @@ session_start();
 include '../controller/conexionBD.php';
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    $username = $_POST['username'];
-    $password = $_POST['password'];
+    $nombre = $_POST['username'];
+    $contraseña = $_POST['password'];
 
-    // Verificar si el usuario existe
-    $query = "SELECT * FROM users WHERE username = ?";
+    $query = "SELECT * FROM usuarios WHERE nombre = ?";
     $stmt = $conn->prepare($query);
-    $stmt->bind_param("s", $username);
+    $stmt->bind_param("s", $nombre);
     $stmt->execute();
     $result = $stmt->get_result();
 
     if ($result->num_rows === 1) {
         $usuario = $result->fetch_assoc();
-        // Verificar la contraseña
-        if (password_verify($password, $usuario['password'])) {
-            // Iniciar sesión
-            $_SESSION['user_id'] = $usuario['id'];
-            $_SESSION['username'] = $usuario['username'];
-        
+        if (password_verify($contraseña, $usuario['contraseña'])) {
+            $_SESSION['user_id'] = $usuario['email'];
+            $_SESSION['username'] = $usuario['nombre'];
             header("Location: ../index.php");
+            exit();
         } else {
-            echo "<script>alert('Contraseña incorrecta.'); window.location.href='../view/login.php';</script>";
+            echo "<script>alert('Contraseña incorrecta.'); window.location.href='../view/pages/login.php';</script>";
         }
     } else {
-        echo "<script>alert('El usuario no existe.'); window.location.href='../view/login.php';</script>";
+        echo "<script>alert('El usuario no existe.'); window.location.href='../view/pages/login.php';</script>";
     }
 }
 ?>

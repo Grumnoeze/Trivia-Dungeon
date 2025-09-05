@@ -1,30 +1,29 @@
-<?php   
+<?php
 include '../controller/conexionBD.php';
 
-if ($_Server["REQUEST_METHOD"] == "POST") {
-    $username = $_POST['username'];
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    $nombre = $_POST['username'];
     $email = $_POST['email'];
-    $password = password_hash($_POST['password'], PASSWORD_BCRYPT);
+    $contraseña = password_hash($_POST['password'], PASSWORD_DEFAULT);
 
-    // Verificar si el usuario o correo ya existen
-    $checkQuery = "SELECT * FROM users WHERE username = ? OR email = ?";
+    $checkQuery = "SELECT * FROM usuarios WHERE nombre = ? OR email = ?";
     $stmt = $conn->prepare($checkQuery);
-    $stmt->bind_param("ss", $username, $email);
+    $stmt->bind_param("ss", $nombre, $email);
     $stmt->execute();
     $result = $stmt->get_result();
 
     if ($result->num_rows > 0) {
-        echo "<script>alert('El nombre de usuario o correo ya están en uso.'); window.location.href='../view/registrarse.php';</script>";
+        echo "<script>alert('El nombre de usuario o correo ya están en uso.'); window.location.href='../view/pages/register.php';</script>";
     } else {
-        // Insertar nuevo usuario
-        $insertQuery = "INSERT INTO users (username, email, password) VALUES (?, ?, ?)";
+        $insertQuery = "INSERT INTO usuarios (email, nombre, contraseña) VALUES (?, ?, ?)";
         $stmt = $conn->prepare($insertQuery);
-        $stmt->bind_param("sss", $username, $email, $password);
+        $stmt->bind_param("sss", $email, $nombre, $contraseña);
 
         if ($stmt->execute()) {
-            echo "<script>alert('Registro exitoso. Ahora puedes iniciar sesión.'); window.location.href='../view/login.php';</script>";
+            echo "<script>alert('Registro exitoso. Ahora puedes iniciar sesión.'); window.location.href='../view/pages/login.php';</script>";
         } else {
-            echo "<script>alert('Error al registrar el usuario. Inténtalo de nuevo.'); window.location.href='../view/registrarse.php';</script>";
+            echo "<script>alert('Error al registrar el usuario.'); window.location.href='../view/pages/register.php';</script>";
         }
     }
 }
+?>

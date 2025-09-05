@@ -59,7 +59,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     <main>
         <div class="form-container">
             <h2>Registro</h2>
-            <form method="POST" action="">
+            <form method="POST" action="../../model/registrarse.php">
                 <label for="email">Correo Electrónico:</label>
                 <input type="email" id="email" name="email" required>
 

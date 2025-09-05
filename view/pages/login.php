@@ -32,3 +32,50 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
 }
 ?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <header>
+        <div class="logo">
+            <a href="../index.php"><img src="" alt=""></a>
+        </div>
+        <div class="nav">
+            <nav class="links">
+                <a href="">prueba 1</a>
+                <a href="">prueba 2</a>
+                <a href="">prueba 3</a>
+                <a href="">prueba 4</a>
+            </nav>
+            <nav class="login-contact">
+                <?php if (isset($_SESSION['username'])): ?>
+                    <a href="view/pages/login.php">
+                        <img src="" alt="">Acceder
+                    </a>
+                <?php else: ?>
+                    <a href="controller/logout.php">
+                        <img src="" alt="">Cerrar sesión
+                    </a>
+                <?php endif; ?>
+            </nav>
+        </div>
+    </header>
+    <main>
+        <h2>Iniciar Sesión</h2>
+        <form method="POST" action="../../model/loguearse.php">
+            <label for="username">Usuario:</label>
+            <input type="text" id="username" name="username" required>
+            <br>
+            <label for="password">Contraseña:</label>
+            <input type="password" id="password" name="password" required>
+            <br>
+            <button type="submit">Iniciar Sesión</button>
+            <p>¿No tienes una cuenta? <a href="register.php">Regístrate aquí</a></p>
+        </form>
+    </main>
+</body>
+</html>
