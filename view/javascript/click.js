@@ -29,6 +29,7 @@ let inited = false;
 let wallTop, wallBottom, wallLeft, wallRight;
 let wallCorner1, wallCorner2, wallCorner3, wallCorner4;
 
+// Cargar imágenes
 function preload() {
   // usa tus rutas reales aquí
   wallTop     = loadImage("../src/sprites/tiles/dungeon/dungeon_wall_top.png");
