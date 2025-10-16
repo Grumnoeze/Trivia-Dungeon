@@ -13,6 +13,7 @@ let offsetX, offsetY;
 
 let playerSprites = {};
 let currentPlayerImg;
+let heartSprite;
 
 let player = {
   x: 0,
@@ -20,7 +21,9 @@ let player = {
   vx: 0,
   vy: 0,
   // velocidad relativa al tileSize — se calcula dinámicamente en draw
-  radiusFactor: 0.32 // radio del jugador en relación al tile
+  radiusFactor: 0.32, // radio del jugador en relación al tile
+  hearts: 3,
+  maxHearts: 3,
 };
 
 let inited = false;
@@ -28,6 +31,49 @@ let inited = false;
 // Sprites de muros
 let wallTop, wallBottom, wallLeft, wallRight;
 let wallCorner1, wallCorner2, wallCorner3, wallCorner4;
+
+// Tamaño de la sala (ventana de la cámara)
+// ---------- Cámara / transición (globales) ----------
+const TRANSITION_FRAMES = 20;   // duración de la transición en frames (ajustable)
+
+// Estado de la transición
+let isTransitioning = false;
+let transitionCounter = 0;
+
+// Offsets en PIXELES (se usan en translate(-camOffset.x, -camOffset.y))
+let camOffset = { x: 0, y: 0 };         // offset actual de la cámara (px)
+let transitionFrom = { x: 0, y: 0 };    // pixel (px) donde empieza la transición
+let transitionTo   = { x: 0, y: 0 };    // pixel (px) donde termina la transición
+
+// Sala destino pendiente (se actualiza al final de la transición)
+
+// ---------- Tamaño de sala (ya lo tienes, solo confirma) ----------
+let ROOM_WIDTH  = 12; // ancho de la "sala" en tiles
+let ROOM_HEIGHT = 8;  // alto de la "sala" en tiles
+
+// ---------- Índices del tile donde está el jugador (actualizados cada frame) ----------
+let playerTileX = 0; // posición en tiles relativa al mapa global (no calcular aquí)
+let playerTileY = 0;
+
+// ---------- Dimensiones del mapa (se calculan en loadLevel/setup) ----------
+let MAP_COLS = 0; // columnas del mapa global (tiles) -> setear después de cargar level
+let MAP_ROWS = 0; // filas del mapa global (tiles)    -> setear después de cargar level
+
+roomX = 0;
+roomY = 0;
+
+transitionFrames = TRANSITION_FRAMES;
+
+let transitionProgress = 0;
+let startOffsetX, startOffsetY;
+let targetOffsetX, targetOffsetY;
+let targetRoomX, targetRoomY;
+
+// Sala destino pendiente
+let pendingRoom = { x: null, y: null, fromX: null, fromY: null };
+
+// Dirección de transición (necesario para recolocar al jugador al final)
+let transitionDir = { x: 0, y: 0 };
 
 // Cargar imágenes
 function preload() {
@@ -61,7 +107,11 @@ function preload() {
   playerSprites.left = loadImage("../src/sprites/player/leftwalk1.png");
   playerSprites.right = loadImage("../src/sprites/player/rightwalk1.png");
 
+  heartSprite = loadImage("../src/sprites/ui/heart_full.png");
+
   currentPlayerImg = playerSprites.down;
+
+  pixelFont = loadFont("../src/fonts/ari-w9500.ttf");
 }
 
 
@@ -122,88 +172,80 @@ function drawGrid() {
 }
 
 function handlePlayerMovement() {
-  if (!inited) return;
+  if (!inited || isTransitioning) return; // bloquear mientras transiciona
 
-  // velocidad máxima proporcional al tileSize
-  let maxSpeed = tileSize * 0.08; // ajusta para hacer más/menos rápido
+  let maxSpeed = tileSize * 0.07;
 
-  // leer input
-  let left  = keyIsDown(65) || keyIsDown(37); // A, ←
-  let right = keyIsDown(68) || keyIsDown(39); // D, →
-  let up    = keyIsDown(87) || keyIsDown(38); // W, ↑
-  let down  = keyIsDown(83) || keyIsDown(40); // S, ↓
+  let left  = keyIsDown(65) || keyIsDown(37);
+  let right = keyIsDown(68) || keyIsDown(39);
+  let up    = keyIsDown(87) || keyIsDown(38);
+  let down  = keyIsDown(83) || keyIsDown(40);
 
   let dx = (right ? 1 : 0) - (left ? 1 : 0);
   let dy = (down  ? 1 : 0) - (up   ? 1 : 0);
 
-  // normalizar diagonal para mantener misma velocidad
   if (dx !== 0 && dy !== 0) {
     dx *= 0.7071;
     dy *= 0.7071;
   }
 
-  // velocidad deseada
-  let desiredVx = dx * maxSpeed;
-  let desiredVy = dy * maxSpeed;
+  const accel = 0.20;
+  const desiredVx = dx * maxSpeed;
+  const desiredVy = dy * maxSpeed;
 
-  const accel = 0.20; // 0..1
+  player.vx = dx === 0 ? 0 : lerp(player.vx, desiredVx, accel);
+  player.vy = dy === 0 ? 0 : lerp(player.vy, desiredVy, accel);
 
-  // --- aquí está la diferencia ---
-  if (dx === 0) {
-    player.vx = 0; // frena seco en X
-  } else {
-    player.vx = lerp(player.vx, desiredVx, accel);
-  }
-
-  if (dy === 0) {
-    player.vy = 0; // frena seco en Y
-  } else {
-    player.vy = lerp(player.vy, desiredVy, accel);
-  }
-  // -------------------------------
-
-  // aplicar velocidad
   let nextX = player.x + player.vx;
-  if (!collidesWithWallAtPixel(nextX, player.y)) {
-    player.x = nextX;
-  } else {
-    player.vx = 0;
-  }
+  if (!collidesWithWallAtPixel(nextX, player.y)) player.x = nextX; else player.vx = 0;
 
   let nextY = player.y + player.vy;
-  if (!collidesWithWallAtPixel(player.x, nextY)) {
-    player.y = nextY;
-  } else {
-    player.vy = 0;
-  }
+  if (!collidesWithWallAtPixel(player.x, nextY)) player.y = nextY; else player.vy = 0;
 
-  // mantener dentro del área jugable (con margen por radio)
-  let r = tileSize * player.radiusFactor;
-  player.x = constrain(player.x, offsetX + r, offsetX + playW - r);
-  player.y = constrain(player.y, offsetY + r, offsetY + playH - r);
+  // --- actualizar tile actual ---
+  playerTileX = Math.floor(player.x / tileSize);
+  playerTileY = Math.floor(player.y / tileSize);
+  let tileValue = currentLevel[playerTileY]?.[playerTileX] ?? 1; // fallback muro
+
+  // --- debug ---
+  console.log(
+    `Tile player: (${playerTileX},${playerTileY}) | Tile value: ${tileValue} | Room: (${roomX},${roomY})`
+  );
+
+  // --- transición entre salas ---
+  if (tileValue === 0) { 
+    if (playerTileX >= ROOM_WIDTH - 1) {
+      startTransition(1, 0); // derecha
+    } else if (playerTileX <= 0) {
+      startTransition(-1, 0); // izquierda
+    } else if (playerTileY >= ROOM_HEIGHT - 1) {
+      startTransition(0, 1); // abajo
+    } else if (playerTileY <= 0) {
+      startTransition(0, -1); // arriba
+    }
+  }
 }
+
 
 
 function drawPlayer() {
   let r = tileSize * player.radiusFactor;
 
-  // Determinar dirección (basado en velocidad)
+  // Dirección del sprite (ya lo tienes)
   if (player.vx !== 0 || player.vy !== 0) {
     if (Math.abs(player.vx) > Math.abs(player.vy)) {
-      // Movimiento horizontal domina
       if (player.vx > 0) currentPlayerImg = playerSprites.right;
       else currentPlayerImg = playerSprites.left;
     } else {
-      // Movimiento vertical domina
       if (player.vy > 0) currentPlayerImg = playerSprites.down;
       else currentPlayerImg = playerSprites.up;
     }
   }
 
-  // Dibujar sprite centrado en la posición del jugador
   imageMode(CENTER);
   image(currentPlayerImg, player.x, player.y, tileSize, tileSize);
 }
+
 
 function calculatePlayArea() {
   // escoger mayor 4:3 posible dentro del canvas base
@@ -245,24 +287,28 @@ function isSolidAt(levelArray, cx, cy) {
   return val === 1 || val === 5; // 1 = muro, 5 = puerta
 }
 
-let doorMap = new Map(); // clave: "gx,gy" -> objeto door (cada mitad)  
-
 function loadLevel(levelArray) {
   // limpiar entidades
   walls = [];
   enemies = [];
   keys = [];
   doors = [];
-  
-  let seen = Array.from({length: ROWS}, () => Array(COLS).fill(false));
 
   currentLevel = levelArray;
 
-  for (let gy = 0; gy < ROWS; gy++) {
-    for (let gx = 0; gx < COLS; gx++) {
-      const val = levelArray[gy][gx];
-      const px = offsetX + gx * tileSize;
-      const py = offsetY + gy * tileSize;
+  // Dimensiones globales del mapa
+  MAP_ROWS = currentLevel.length;
+  MAP_COLS = currentLevel[0].length;
+
+  // matriz para marcar puertas ya procesadas
+  let seen = Array.from({ length: MAP_ROWS }, () => Array(MAP_COLS).fill(false));
+
+  for (let gy = 0; gy < MAP_ROWS; gy++) {
+    for (let gx = 0; gx < MAP_COLS; gx++) {
+      const val = currentLevel[gy][gx];
+      // POSICIONES EN COORDENADAS DEL MUNDO (sin offsetX/offsetY)
+      const px = gx * tileSize;
+      const py = gy * tileSize;
 
       if (val === 1) {
         // vecinos
@@ -316,302 +362,524 @@ function loadLevel(levelArray) {
 
         walls.push({ gx, gy, x: px, y: py, kind });
       } else if (val === 2) {
-        // posición inicial del jugador (en el centro de la celda)
-        player.x = px + tileSize / 2;
-        player.y = py + tileSize / 2;
+        // POSICIÓN DEL JUGADOR EN COORDENADAS DEL MUNDO (centro del tile)
+        player.x = gx * tileSize + tileSize / 2;
+        player.y = gy * tileSize + tileSize / 2;
       } else if (val === 3) {
-        enemies.push({ x: px + tileSize / 2, y: py + tileSize / 2 });
+        enemies.push({ x: gx * tileSize + tileSize / 2, y: gy * tileSize + tileSize / 2 });
       } else if (val === 4) {
-        keys.push({ x: px + tileSize / 2, y: py + tileSize / 2 });
-      }  else if (val === 5) {
-        // puertas: agrupar en pares horizontal/vertical o single
-        if (seen[gy][gx]) continue; // ya procesado por su pareja
-        // Preferimos pares horizontales si existe vecino a la derecha
-        if (gx + 1 < COLS && levelArray[gy][gx + 1] === 5 && !seen[gy][gx + 1]) {
-          // par horizontal: left = half1, right = half2
-          const pxR = offsetX + (gx + 1) * tileSize;
-          doors.push({ gx: gx,     gy: gy, x: px,   y: py, half: 1, size: 2, orient: 'h' });
-          doors.push({ gx: gx + 1, gy: gy, x: pxR,  y: py, half: 2, size: 2, orient: 'h' });
+        keys.push({ x: gx * tileSize + tileSize / 2, y: gy * tileSize + tileSize / 2 });
+      } else if (val === 5) {
+        if (seen[gy][gx]) continue;
+        // Buscar pareja a la derecha
+        if (gx + 1 < MAP_COLS && currentLevel[gy][gx + 1] === 5 && !seen[gy][gx + 1]) {
+          doors.push({ gx: gx,     gy: gy, x: px,                    y: py,                    half: 1, size: 2, orient: 'h' });
+          doors.push({ gx: gx + 1, gy: gy, x: (gx + 1) * tileSize,  y: py,                    half: 2, size: 2, orient: 'h' });
           seen[gy][gx] = true;
           seen[gy][gx + 1] = true;
-        } else if (gy + 1 < ROWS && levelArray[gy + 1][gx] === 5 && !seen[gy + 1][gx]) {
-          // par vertical: top = half1, bottom = half2
-          const pyB = offsetY + (gy + 1) * tileSize;
-          doors.push({ gx: gx, gy: gy,     x: px, y: py,  half: 1, size: 2, orient: 'v' });
-          doors.push({ gx: gx, gy: gy + 1, x: px, y: pyB, half: 2, size: 2, orient: 'v' });
+        } else if (gy + 1 < MAP_ROWS && currentLevel[gy + 1][gx] === 5 && !seen[gy + 1][gx]) {
+          doors.push({ gx: gx, gy: gy,     x: px, y: py,                 half: 1, size: 2, orient: 'v' });
+          doors.push({ gx: gx, gy: gy + 1, x: px, y: (gy + 1) * tileSize, half: 2, size: 2, orient: 'v' });
           seen[gy][gx] = true;
           seen[gy + 1][gx] = true;
         } else {
-          // single tile door
           doors.push({ gx: gx, gy: gy, x: px, y: py, half: 1, size: 1, orient: 'single' });
           seen[gy][gx] = true;
         }
       }
     }
   }
+
+  // asegurarnos que la cámara apunte a la sala actual (coordenadas de mundo)
+  camOffset.x = roomX * ROOM_WIDTH * tileSize;
+  camOffset.y = roomY * ROOM_HEIGHT * tileSize;
 }
 
+// --------------------
+// WORLD MAP
+// --------------------
+
+// Cada posición [fila][columna] representa una sala distinta.
+// Puedes usar null si una sala no existe (pared exterior)
+const exampleLevel = [
+  [
+    level_0_0, level_0_1, level_0_2
+  ],
+  [
+    level_1_0, level_1_1, level_1_2
+  ],
+  [
+    level_2_0, level_2_1, level_2_2
+  ]
+];
+
+// Posición inicial del jugador en el worldmap
+roomX = 1; // columna central
+roomY = 1; // fila central
+
+// --------------------
+// Ejemplo de sala
+// --------------------
+const level_0_0 = [
+  [1,1,1,1,1,1,1,1,1,1,1,1],
+  [1,0,0,0,0,0,0,0,0,0,0,1],
+  [1,0,0,2,0,0,0,0,0,0,0,1],
+  [1,0,0,0,0,0,0,0,0,0,0,1],
+  [1,0,0,0,0,0,0,0,0,0,0,1],
+  [1,0,0,0,0,0,0,0,0,0,0,1],
+  [1,0,0,0,0,0,0,0,0,0,0,1],
+  [1,1,1,1,1,1,1,1,1,1,1,1],
+];
+
+
+
 function drawLevel() {
-  // muros
+  // límites de la cámara en coordenadas de tiles globales
+  const startGX = roomX * ROOM_WIDTH;
+  const startGY = roomY * ROOM_HEIGHT;
+  const endGX = startGX + ROOM_WIDTH;
+  const endGY = startGY + ROOM_HEIGHT;
+
+  // --- MUROS ---
   for (let w of walls) {
-    const cx = w.x + tileSize / 2;
-    const cy = w.y + tileSize / 2;
-    switch (w.kind) {
-      case 'corner_tl':
-        image(wallCorner1, cx, cy, tileSize, tileSize); break;
-      case 'corner_tr':
-        image(wallCorner2, cx, cy, tileSize, tileSize); break;
-      case 'corner_bl':
-        image(wallCorner3, cx, cy, tileSize, tileSize); break;
-      case 'corner_br':
-        image(wallCorner4, cx, cy, tileSize, tileSize); break;
-      case 'top':
-        image(wallTop, cx, cy, tileSize, tileSize); break;
-      case 'bottom':
-        image(wallBottom, cx, cy, tileSize, tileSize); break;
-      case 'left':
-        image(wallLeft, cx, cy, tileSize, tileSize); break;
-      case 'right':
-        image(wallRight, cx, cy, tileSize, tileSize); break;
+    const gx = w.gx;
+    const gy = w.gy;
 
-      case 'vertical_top':
-        image(wallVerticalTop, cx, cy, tileSize, tileSize); break;
-      case 'vertical_mid':
-        image(wallVerticalMid, cx, cy, tileSize, tileSize); break;
-      case 'vertical_bottom':
-        image(wallVerticalBottom, cx, cy, tileSize, tileSize); break;
+    if (gx >= startGX && gx < endGX && gy >= startGY && gy < endGY) {
+      // coordenadas locales dentro de la cámara, luego a coordenadas de pantalla
+      const localX = gx - startGX;
+      const localY = gy - startGY;
+      const cx = offsetX + localX * tileSize + tileSize / 2;
+      const cy = offsetY + localY * tileSize + tileSize / 2;
 
-      case 'horizontal_left':
-        image(wallHorizontalLeft, cx, cy, tileSize, tileSize); break;
-      case 'horizontal_mid':
-        image(wallHorizontalMid, cx, cy, tileSize, tileSize); break;
-      case 'horizontal_right':
-        image(wallHorizontalRight, cx, cy, tileSize, tileSize); break;
+      switch (w.kind) {
+        case 'corner_tl': image(wallCorner1, cx, cy, tileSize, tileSize); break;
+        case 'corner_tr': image(wallCorner2, cx, cy, tileSize, tileSize); break;
+        case 'corner_bl': image(wallCorner3, cx, cy, tileSize, tileSize); break;
+        case 'corner_br': image(wallCorner4, cx, cy, tileSize, tileSize); break;
+        case 'top': image(wallTop, cx, cy, tileSize, tileSize); break;
+        case 'bottom': image(wallBottom, cx, cy, tileSize, tileSize); break;
+        case 'left': image(wallLeft, cx, cy, tileSize, tileSize); break;
+        case 'right': image(wallRight, cx, cy, tileSize, tileSize); break;
 
-      case 'single':
-        image(wallSingle, cx, cy, tileSize, tileSize); break;
+        case 'vertical_top': image(wallVerticalTop, cx, cy, tileSize, tileSize); break;
+        case 'vertical_mid': image(wallVerticalMid, cx, cy, tileSize, tileSize); break;
+        case 'vertical_bottom': image(wallVerticalBottom, cx, cy, tileSize, tileSize); break;
 
-      default:
-        // fallback: cuadrado
-        fill(100); rect(w.x, w.y, tileSize, tileSize);
+        case 'horizontal_left': image(wallHorizontalLeft, cx, cy, tileSize, tileSize); break;
+        case 'horizontal_mid': image(wallHorizontalMid, cx, cy, tileSize, tileSize); break;
+        case 'horizontal_right': image(wallHorizontalRight, cx, cy, tileSize, tileSize); break;
+
+        case 'single': image(wallSingle, cx, cy, tileSize, tileSize); break;
+
+        default:
+          fill(100);
+          rect(offsetX + localX * tileSize, offsetY + localY * tileSize, tileSize, tileSize);
+      }
     }
   }
 
-  // enemigos
+  // --- ENEMIGOS ---
   fill(200, 0, 0);
   for (let e of enemies) {
-    rect(e.x - tileSize*0.3, e.y - tileSize*0.3, tileSize*0.6, tileSize*0.6);
+    // e.x / e.y son coordenadas absolutas (offsetX + gx*tileSize + tileSize/2)
+    const gx = Math.floor((e.x - offsetX) / tileSize);
+    const gy = Math.floor((e.y - offsetY) / tileSize);
+
+    if (gx >= startGX && gx < endGX && gy >= startGY && gy < endGY) {
+      const cx = offsetX + (gx - startGX) * tileSize + tileSize / 2;
+      const cy = offsetY + (gy - startGY) * tileSize + tileSize / 2;
+      rect(cx - tileSize * 0.3, cy - tileSize * 0.3, tileSize * 0.6, tileSize * 0.6);
+    }
   }
 
-  // llaves
+  // --- LLAVES ---
   fill(255, 255, 0);
   for (let k of keys) {
-    ellipse(k.x, k.y, tileSize*0.4);
-  }
-  // asegúrate de tener imageMode(CENTER) antes de esto
-imageMode(CENTER);
+    const gx = Math.floor((k.x - offsetX) / tileSize);
+    const gy = Math.floor((k.y - offsetY) / tileSize);
 
-for (let d of doors) {
-  const cx = d.x + tileSize / 2;
-  const cy = d.y + tileSize / 2;
-
-  push();
-  translate(cx, cy);
-
-  let angle = 0;
-  let img = dungeon_door; // fallback
-
-  if (d.size === 2) {
-    if (d.orient === 'h') {
-      // Puerta horizontal (Norte / Sur) - dos tiles lado a lado
-      const leftG = (d.half === 1) ? d.gx : d.gx - 1;
-      const gy = d.gy;
-
-      const aboveBoth = isWallOrEdge(currentLevel, leftG, gy - 1) && isWallOrEdge(currentLevel, leftG + 1, gy - 1);
-      const belowBoth = isWallOrEdge(currentLevel, leftG, gy + 1) && isWallOrEdge(currentLevel, leftG + 1, gy + 1);
-
-      if (aboveBoth && !belowBoth) angle = 0;        // Norte
-      else if (belowBoth && !aboveBoth) angle = PI;  // Sur
-      else angle = 0; // fallback
-
-      // swap para la mitad izquierda/derecha si la puerta está rotada 180°
-      let leftAsset = dungeon_door_half1;
-      let rightAsset = dungeon_door_half2;
-      if (Math.abs(angle - PI) < 0.001) {
-        [leftAsset, rightAsset] = [rightAsset, leftAsset];
-      }
-      img = (d.half === 1) ? leftAsset : rightAsset;
-
-    } else if (d.orient === 'v') {
-      // Puerta vertical (Este / Oeste) - dos tiles uno encima del otro
-      const topG = d.gy - (d.half === 2 ? 1 : 0);
-      const gx = d.gx;
-
-      const leftBlocked  = isWallOrEdge(currentLevel, gx - 1, topG) && isWallOrEdge(currentLevel, gx - 1, topG + 1);
-      const rightBlocked = isWallOrEdge(currentLevel, gx + 1, topG) && isWallOrEdge(currentLevel, gx + 1, topG + 1);
-
-      if (rightBlocked && !leftBlocked) {
-        angle = HALF_PI;   // Este
-      } else if (leftBlocked && !rightBlocked) {
-        angle = -HALF_PI;  // Oeste
-      } else {
-        // desempate: contamos muros en un rango y elegimos la mayoría
-        let leftCount = 0, rightCount = 0;
-        for (let yy = topG - 1; yy <= topG + 2; yy++) {
-          if (isWallOrEdge(currentLevel, gx - 1, yy)) leftCount++;
-          if (isWallOrEdge(currentLevel, gx + 1, yy)) rightCount++;
-        }
-        angle = (rightCount >= leftCount) ? HALF_PI : -HALF_PI;
-      }
-
-      // FIX clave: para vertical, cuando la puerta apunta al Oeste (-HALF_PI)
-      // hay que *swap* las mitades para que la mitad superior/inferior
-      // encajen correctamente tras la rotación.
-      if (Math.abs(angle - (-HALF_PI)) < 0.001) {
-        // si es Oeste, invertimos las mitades al dibujar
-        img = (d.half === 1) ? dungeon_door_half2 : dungeon_door_half1;
-      } else {
-        // Este (o fallback): mitades normales
-        img = (d.half === 1) ? dungeon_door_half1 : dungeon_door_half2;
-      }
+    if (gx >= startGX && gx < endGX && gy >= startGY && gy < endGY) {
+      const cx = offsetX + (gx - startGX) * tileSize + tileSize / 2;
+      const cy = offsetY + (gy - startGY) * tileSize + tileSize / 2;
+      ellipse(cx, cy, tileSize * 0.4);
     }
+  }
 
-    rotate(angle);
-    image(img, 0, 0, tileSize, tileSize);
-
-  } else {
-    // Puerta single (1 tile)
+  // --- PUERTAS ---
+  imageMode(CENTER);
+  for (let d of doors) {
     const gx = d.gx;
     const gy = d.gy;
 
-    if (isWallOrEdge(currentLevel, gx, gy - 1)) angle = 0;
-    else if (isWallOrEdge(currentLevel, gx, gy + 1)) angle = PI;
-    else if (isWallOrEdge(currentLevel, gx + 1, gy)) angle = HALF_PI;
-    else if (isWallOrEdge(currentLevel, gx - 1, gy)) angle = -HALF_PI;
-    else angle = 0;
+    if (gx >= startGX && gx < endGX && gy >= startGY && gy < endGY) {
+      const cx = offsetX + (gx - startGX) * tileSize + tileSize / 2;
+      const cy = offsetY + (gy - startGY) * tileSize + tileSize / 2;
 
-    rotate(angle);
-    image(dungeon_door, 0, 0, tileSize, tileSize);
+      push();
+      translate(cx, cy);
+
+      let angle = 0;
+      let img = dungeon_door; // fallback
+
+      if (d.size === 2) {
+        if (d.orient === 'h') {
+          const leftG = (d.half === 1) ? d.gx : d.gx - 1;
+          const gyLocal = d.gy;
+
+          const aboveBoth = isWallOrEdge(currentLevel, leftG, gyLocal - 1) && isWallOrEdge(currentLevel, leftG + 1, gyLocal - 1);
+          const belowBoth = isWallOrEdge(currentLevel, leftG, gyLocal + 1) && isWallOrEdge(currentLevel, leftG + 1, gyLocal + 1);
+
+          if (aboveBoth && !belowBoth) angle = 0;
+          else if (belowBoth && !aboveBoth) angle = PI;
+          else angle = 0;
+
+          let leftAsset = dungeon_door_half1;
+          let rightAsset = dungeon_door_half2;
+          if (Math.abs(angle - PI) < 0.001) [leftAsset, rightAsset] = [rightAsset, leftAsset];
+          img = (d.half === 1) ? leftAsset : rightAsset;
+
+        } else if (d.orient === 'v') {
+          const topG = d.gy - (d.half === 2 ? 1 : 0);
+          const gxLocal = d.gx;
+
+          const leftBlocked  = isWallOrEdge(currentLevel, gxLocal - 1, topG) && isWallOrEdge(currentLevel, gxLocal - 1, topG + 1);
+          const rightBlocked = isWallOrEdge(currentLevel, gxLocal + 1, topG) && isWallOrEdge(currentLevel, gxLocal + 1, topG + 1);
+
+          if (rightBlocked && !leftBlocked) angle = HALF_PI;
+          else if (leftBlocked && !rightBlocked) angle = -HALF_PI;
+          else {
+            let leftCount = 0, rightCount = 0;
+            for (let yy = topG - 1; yy <= topG + 2; yy++) {
+              if (isWallOrEdge(currentLevel, gxLocal - 1, yy)) leftCount++;
+              if (isWallOrEdge(currentLevel, gxLocal + 1, yy)) rightCount++;
+            }
+            angle = (rightCount >= leftCount) ? HALF_PI : -HALF_PI;
+          }
+
+          if (Math.abs(angle - (-HALF_PI)) < 0.001) img = (d.half === 1) ? dungeon_door_half2 : dungeon_door_half1;
+          else img = (d.half === 1) ? dungeon_door_half1 : dungeon_door_half2;
+        }
+
+        rotate(angle);
+        image(img, 0, 0, tileSize, tileSize);
+
+      } else {
+        // Puerta single
+        if (isWallOrEdge(currentLevel, gx, gy - 1)) angle = 0;
+        else if (isWallOrEdge(currentLevel, gx, gy + 1)) angle = PI;
+        else if (isWallOrEdge(currentLevel, gx + 1, gy)) angle = HALF_PI;
+        else if (isWallOrEdge(currentLevel, gx - 1, gy)) angle = -HALF_PI;
+        else angle = 0;
+
+        rotate(angle);
+        image(dungeon_door, 0, 0, tileSize, tileSize);
+      }
+
+      pop();
+    }
+  }
+}
+
+// --------------------
+// Transición: start / update / finish
+// --------------------
+
+function startTransition(dxChunk, dyChunk) {
+  if (isTransitioning) return;
+
+  
+  // ⚠️ Verificar si la sala destino existe en el worldmap
+  const targetY = roomY + dyChunk;
+  const targetX = roomX + dxChunk;
+
+  if (!exampleLevel[targetY] || !exampleLevel[targetY][targetX]) {
+    console.log("No hay sala en esa dirección");
+    return;
   }
 
-  pop();
-}
+  isTransitioning = true;
+  transitionProgress = 0;
+
+  transitionFrom = { x: camOffset.x, y: camOffset.y };
+  transitionTo = { 
+    x: camOffset.x + dxChunk * ROOM_WIDTH * tileSize,
+    y: camOffset.y + dyChunk * ROOM_HEIGHT * tileSize
+  };
+
+  // Guardar dirección de movimiento
+  transitionDir.x = dxChunk;
+  transitionDir.y = dyChunk;
+
+  // ⚠️ NO cargues la sala todavía
+  // Sólo marca a dónde iremos
+  pendingRoom.x = roomX + dxChunk;
+  pendingRoom.y = roomY + dyChunk;
 }
 
+
+// easing simple (smoothstep)
+function _ease(t) {
+  return t * t * (3 - 2 * t);
+}
+
+function updateTransition() {
+  if (!isTransitioning) return;
+
+  transitionProgress += 0.05; // velocidad
+  if (transitionProgress >= 1) {
+    transitionProgress = 1;
+    isTransitioning = false;
+
+    // 💡 Aquí SÍ cargamos la sala
+    roomX = pendingRoom.x;
+    roomY = pendingRoom.y;
+    loadLevel(exampleLevel[roomY][roomX]);
+
+    // Recolocar jugador en borde contrario
+    if (transitionDir.x === 1) player.x = 0;
+    if (transitionDir.x === -1) player.x = (ROOM_WIDTH - 1) * tileSize;
+    if (transitionDir.y === 1) player.y = 0;
+    if (transitionDir.y === -1) player.y = (ROOM_HEIGHT - 1) * tileSize;
+
+    // Resetear cámara
+    camOffset.x = roomX * ROOM_WIDTH * tileSize;
+    camOffset.y = roomY * ROOM_HEIGHT * tileSize;
+  } else {
+    // Interpolar la cámara mientras dura la transición
+    camOffset.x = lerp(transitionFrom.x, transitionTo.x, transitionProgress);
+    camOffset.y = lerp(transitionFrom.y, transitionTo.y, transitionProgress);
+  }
+} 
+
+
+function finishTransition() {
+  // asegurar valores exactos
+  camOffset.x = transitionTo.x;
+  camOffset.y = transitionTo.y;
+
+  // datos útiles
+  const dx = transitionDir.x;
+  const dy = transitionDir.y;
+  const prevRoomX = pendingRoom.fromX;
+  const prevRoomY = pendingRoom.fromY;
+  const newRoomX = pendingRoom.x;
+  const newRoomY = pendingRoom.y;
+
+  // marcamos la nueva sala
+  roomX = newRoomX;
+  roomY = newRoomY;
+
+  // --- Reposicionar jugador en la sala nueva ---
+  // calculamos la tile global actual del jugador (antes de mover)
+  let oldGX = Math.floor(player.x / tileSize);
+  let oldGY = Math.floor(player.y / tileSize);
+
+  // posición relativa dentro de la sala anterior
+  let relCol = oldGX - prevRoomX * ROOM_WIDTH;
+  let relRow = oldGY - prevRoomY * ROOM_HEIGHT;
+  relCol = Math.max(0, Math.min(ROOM_WIDTH - 1, relCol));
+  relRow = Math.max(0, Math.min(ROOM_HEIGHT - 1, relRow));
+
+  // objetivo inicial (global tiles) en la sala nueva
+  let targetGX = newRoomX * ROOM_WIDTH + relCol;
+  let targetGY = newRoomY * ROOM_HEIGHT + relRow;
+
+  if (dx === 1) {
+    // vinimos por la derecha -> aparecer en la columna 0 de la nueva sala
+    targetGX = newRoomX * ROOM_WIDTH + 0;
+    targetGY = newRoomY * ROOM_HEIGHT + relRow;
+  } else if (dx === -1) {
+    // vinimos por la izquierda -> columna final
+    targetGX = newRoomX * ROOM_WIDTH + (ROOM_WIDTH - 1);
+    targetGY = newRoomY * ROOM_HEIGHT + relRow;
+  } else if (dy === 1) {
+    // vinimos por abajo -> fila 0
+    targetGY = newRoomY * ROOM_HEIGHT + 0;
+    targetGX = newRoomX * ROOM_WIDTH + relCol;
+  } else if (dy === -1) {
+    // vinimos por arriba -> fila final
+    targetGY = newRoomY * ROOM_HEIGHT + (ROOM_HEIGHT - 1);
+    targetGX = newRoomX * ROOM_WIDTH + relCol;
+  }
+
+  // clamp dentro del mapa
+  targetGX = Math.max(0, Math.min(MAP_COLS - 1, targetGX));
+  targetGY = Math.max(0, Math.min(MAP_ROWS - 1, targetGY));
+
+  // buscar la tile más cercana no-muro dentro de la sala (preferencia a permanecer cerca del target)
+  function isPassable(gx, gy) {
+    if (gy < 0 || gy >= MAP_ROWS || gx < 0 || gx >= MAP_COLS) return false;
+    const v = currentLevel[gy][gx];
+    // considerar pasable todo lo que NO sea muro (1). 5 (puerta) también se acepta.
+    return v !== 1;
+  }
+
+  // si la tile objetivo no es pasable, buscamos alrededor (en la misma columna o fila según movimiento)
+  if (!isPassable(targetGX, targetGY)) {
+    let found = false;
+    if (dx !== 0) {
+      // buscamos verticalmente en la misma columna
+      const col = targetGX;
+      const startRow = targetGY;
+      for (let d = 0; d < ROOM_HEIGHT && !found; d++) {
+        // alternar búsqueda hacia arriba y abajo
+        const up = startRow - d;
+        const down = startRow + d;
+        if (up >= newRoomY * ROOM_HEIGHT && up < (newRoomY + 1) * ROOM_HEIGHT && isPassable(col, up)) {
+          targetGY = up; found = true; break;
+        }
+        if (down >= newRoomY * ROOM_HEIGHT && down < (newRoomY + 1) * ROOM_HEIGHT && isPassable(col, down)) {
+          targetGY = down; found = true; break;
+        }
+      }
+    } else if (dy !== 0) {
+      // buscamos horizontalmente en la misma fila
+      const row = targetGY;
+      const startCol = targetGX;
+      for (let d = 0; d < ROOM_WIDTH && !found; d++) {
+        const left = startCol - d;
+        const right = startCol + d;
+        if (left >= newRoomX * ROOM_WIDTH && left < (newRoomX + 1) * ROOM_WIDTH && isPassable(left, row)) {
+          targetGX = left; found = true; break;
+        }
+        if (right >= newRoomX * ROOM_WIDTH && right < (newRoomX + 1) * ROOM_WIDTH && isPassable(right, row)) {
+          targetGX = right; found = true; break;
+        }
+      }
+    }
+
+    // si todavía no encontramos, hacemos búsqueda general en la sala (espiral simple)
+    if (!found) {
+      const roomStartCol = newRoomX * ROOM_WIDTH;
+      const roomStartRow = newRoomY * ROOM_HEIGHT;
+      outer: for (let r = 0; r < ROOM_HEIGHT; r++) {
+        for (let c = 0; c < ROOM_WIDTH; c++) {
+          const gx = roomStartCol + c;
+          const gy = roomStartRow + r;
+          if (isPassable(gx, gy)) { targetGX = gx; targetGY = gy; found = true; break outer; }
+        }
+      }
+    }
+  }
+
+  // finalmente colocamos al jugador en el centro de la tile encontrada
+  player.x = targetGX * tileSize + tileSize / 2;
+  player.y = targetGY * tileSize + tileSize / 2;
+  player.vx = 0;
+  player.vy = 0;
+
+  // limpiar estado de transición
+  isTransitioning = false;
+  transitionCounter = 0;
+  pendingRoom.x = null;
+  pendingRoom.y = null;
+  pendingRoom.fromX = null;
+  pendingRoom.fromY = null;
+  transitionDir.x = 0;
+  transitionDir.y = 0;
+
+  console.log(`finishTransition -> now in room (${roomX},${roomY}) player tile (${targetGX},${targetGY})`);
+}
+
+
 function isWallOrEdge(levelArray, cx, cy) {
-  if (cx < 0 || cx >= COLS || cy < 0 || cy >= ROWS) return true; // <- aquí está el fix
+  // usar dimensiones del mapa global
+  if (cx < 0 || cx >= MAP_COLS || cy < 0 || cy >= MAP_ROWS) return true;
   return levelArray[cy][cx] === 1;
 }
 
 
+
 function collidesWithWallAtPixel(px, py) {
-  // seguridad: si no hay level cargado, consideramos colisión (prevención)
   if (!currentLevel) return true;
 
-  // --- calcular tamaño de colisión del jugador ---
-  // si definiste player.scale (ej: scale = 1 => 1 tile), lo usamos.
-  // si no, hacemos fallback al radiusFactor legacy (r = tileSize * radiusFactor)
+  // tamaño del sprite en píxeles
   let spriteFullSize;
   if (typeof player.scale === 'number' && player.scale > 0) {
     spriteFullSize = tileSize * player.scale;
   } else {
-    // radiusFactor es el radio en relación al tile (legacy). Lo convertimos a diámetro.
     spriteFullSize = tileSize * player.radiusFactor * 2;
   }
 
-  // halfSize = mitad del sprite * margen pequeño para evitar quedarse pegado
-  let halfSize = spriteFullSize * 0.5 * 1.55; // 0.95 = 5% de tolerancia (ajusta si quieres)
+  let halfSize = spriteFullSize * 0.5 * 1.46;
 
   let left = px - halfSize;
   let right = px + halfSize;
   let top = py - halfSize;
   let bottom = py + halfSize;
 
-  // convertir caja del jugador a índices de tiles (enteros)
-  let c1 = Math.floor((left - offsetX) / tileSize);
-  let c2 = Math.floor((right - offsetX) / tileSize);
-  let r1 = Math.floor((top - offsetY) / tileSize);
-  let r2 = Math.floor((bottom - offsetY) / tileSize);
+  // convertir caja del jugador a indices de tiles (WORLD)
+  let c1 = Math.floor(left / tileSize);
+  let c2 = Math.floor(right / tileSize);
+  let r1 = Math.floor(top / tileSize);
+  let r2 = Math.floor(bottom / tileSize);
 
-  // helper: AABB intersection
   const rectsIntersect = (aL, aT, aR, aB, bL, bT, bR, bB) => {
     return aL < bR && aR > bL && aT < bB && aB > bT;
   };
 
-  // iterar tiles ocupados por la caja del jugador
   for (let ry = r1; ry <= r2; ry++) {
     for (let cx = c1; cx <= c2; cx++) {
-
-      // fuera del mapa -> consideramos colisión (comportamiento previo)
-      if (ry < 0 || ry >= ROWS || cx < 0 || cx >= COLS) {
-        return true;
-      }
+      // fuera del mapa -> colisión
+      if (ry < 0 || ry >= MAP_ROWS || cx < 0 || cx >= MAP_COLS) return true;
 
       const tileVal = currentLevel[ry][cx];
-
-      // muro sólido tradicional
       if (tileVal === 1) return true;
 
-      // puerta (5): comprobar mitad colisionable
       if (tileVal === 5) {
-        const tileLeft = offsetX + cx * tileSize;
-        const tileTop  = offsetY + ry * tileSize;
+        const tileLeft = cx * tileSize;
+        const tileTop = ry * tileSize;
         const tileRight = tileLeft + tileSize;
         const tileBottom = tileTop + tileSize;
 
         const pL = left, pR = right, pT = top, pB = bottom;
 
-        // detectar orientación y mitad (en tiempo real, sin depender de doorMap)
-        let orient = null; // 'h'|'v'|null
-        let half = 1;      // 1 = left/top, 2 = right/bottom
+        // detectar orientación y mitad
+        let orient = null;
+        let half = 1;
 
-        if (cx + 1 < COLS && currentLevel[ry][cx + 1] === 5) { // pareja a la derecha
-          orient = 'h'; half = 1;
-        } else if (cx - 1 >= 0 && currentLevel[ry][cx - 1] === 5) { // pareja a la izquierda
-          orient = 'h'; half = 2;
-        } else if (ry + 1 < ROWS && currentLevel[ry + 1][cx] === 5) { // pareja abajo
-          orient = 'v'; half = 1;
-        } else if (ry - 1 >= 0 && currentLevel[ry - 1][cx] === 5) { // pareja arriba
-          orient = 'v'; half = 2;
-        } else {
-          // puerta single -> tratamos como sólido completo (puedes cambiar esto)
+        if (cx + 1 < MAP_COLS && currentLevel[ry][cx + 1] === 5) { orient = 'h'; half = 1; }
+        else if (cx - 1 >= 0 && currentLevel[ry][cx - 1] === 5) { orient = 'h'; half = 2; }
+        else if (ry + 1 < MAP_ROWS && currentLevel[ry + 1][cx] === 5) { orient = 'v'; half = 1; }
+        else if (ry - 1 >= 0 && currentLevel[ry - 1][cx] === 5) { orient = 'v'; half = 2; }
+        else {
           if (rectsIntersect(pL, pT, pR, pB, tileLeft, tileTop, tileRight, tileBottom)) return true;
           else continue;
         }
 
-        // comprobar la mitad exterior bloqueada según orient/half
+        const margin = tileSize * 0.1;
+
         if (orient === 'h') {
           if (half === 1) {
             const colL = tileLeft;
-            const colR = tileLeft + tileSize / 2;
+            const colR = tileLeft + tileSize / 2 - margin;
             if (rectsIntersect(pL, pT, pR, pB, colL, tileTop, colR, tileBottom)) return true;
           } else {
-            const colL = tileLeft + tileSize / 2;
+            const colL = tileLeft + tileSize / 2 + margin;
             const colR = tileRight;
             if (rectsIntersect(pL, pT, pR, pB, colL, tileTop, colR, tileBottom)) return true;
           }
-        } else { // 'v'
+        } else if (orient === 'v') {
           if (half === 1) {
             const colT = tileTop;
-            const colB = tileTop + tileSize / 2;
+            const colB = tileTop + tileSize / 2 - margin;
             if (rectsIntersect(pL, pT, pR, pB, tileLeft, colT, tileRight, colB)) return true;
           } else {
-            const colT = tileTop + tileSize / 2;
+            const colT = tileTop + tileSize / 2 + margin;
             const colB = tileBottom;
             if (rectsIntersect(pL, pT, pR, pB, tileLeft, colT, tileRight, colB)) return true;
           }
         }
 
-        // si no colisionó la mitad bloqueada, se puede pasar por esta celda
         continue;
       }
-
-      // otros tiles (0,2,3,4, etc.) no bloquean
     }
   }
 
-  return false; // ninguna colisión detectada
+  return false;
 }
+
 
 
 
@@ -649,7 +917,8 @@ function setup() {
   inited = true;
   imageMode(CENTER);
 
-  loadLevel(exampleLevel);
+  loadLevel(exampleLevel[roomY][roomX]);
+
 }
 
 function drawVignette() {
@@ -664,7 +933,7 @@ function drawVignette() {
   // Crear gradiente radial
   let gradient = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, maxRadius);
   gradient.addColorStop(0, "rgba(0,0,0,0)");      // transparente en el centro
-  gradient.addColorStop(1, "rgba(25,0,0,0.4)");    // oscuro en los bordes
+  gradient.addColorStop(1, "rgba(25,0,0,0.7)");    // oscuro en los bordes
 
   // Dibujar un rectángulo qrgba(27, 14, 14, 0.4), 0.4)on ese gradiente
   ctx.fillStyle = gradient;
@@ -679,14 +948,52 @@ function drawVignette() {
   }
 }
 
+function drawUI() {
+  noStroke();
+  fill(0);
+  rect(0, 0, width, height * 0.13);
+
+  // 🔹 Ajustamos tamaño de corazones al alto de la barra
+  let barHeight = height * 0.1;   
+  let heartSize = barHeight * 0.4; 
+  let margin = 5;
+
+  // 🔹 Texto estilo Zelda (arriba de los corazones)
+  textFont(pixelFont);
+  textAlign(LEFT, TOP);
+  textSize(barHeight * 0.35);
+  fill(255, 80, 0);
+
+  let textX = 20;   // margen izquierdo
+  let textY = barHeight * 0.15; // un poco desde arriba
+  text("-HEALTH-", textX, textY);
+
+  // 🔹 Dibujar corazones (debajo del texto)
+  for (let i = 0; i < player.maxHearts; i++) {
+    let x = 41 + i * (heartSize + margin);  // en fila, alineados con el texto
+    let y = textY + barHeight * 0.7;           // debajo del texto
+
+    if (i < player.hearts) {
+      image(heartSprite, x, y, heartSize, heartSize);
+    } else {
+      tint(255, 100);
+      image(heartSprite, x, y, heartSize, heartSize);
+      noTint();
+    }
+  }
+}
+
 
 
 function draw() {
   background('#2e1708');
-
   noSmooth();
+
+  updateTransition();
+
   push();
-  translate(offsetX, offsetY);
+  translate(-camOffset.x, -camOffset.y);
+  
   noStroke();
   fill(255);
   rect(0, 0, playW, playH);
@@ -696,21 +1003,12 @@ function draw() {
 
   handlePlayerMovement();
 
-  drawPlayer();
+  push();
 
   drawLevel();
+  drawPlayer();
+  pop();
 
+  drawUI();
   drawVignette();
 }
-
-let exampleLevel = [
-  [1,1,1,1,1,5,5,1,1,1,1,1],
-  [1,0,0,0,0,0,0,0,0,0,4,1],
-  [1,0,1,1,0,0,0,0,0,0,0,1],
-  [5,0,1,0,0,0,0,1,1,1,0,5],
-  [5,0,0,0,2,0,0,0,0,0,0,5],
-  [1,0,0,0,0,0,0,0,0,3,0,1],
-  [1,0,0,0,0,0,0,0,0,0,0,1], // puerta entre tiles en sur
-  [1,1,1,1,1,5,5,1,1,1,1,1]
-];
-
