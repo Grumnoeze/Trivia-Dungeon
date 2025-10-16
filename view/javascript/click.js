@@ -802,7 +802,8 @@ function collidesWithWallAtPixel(px, py) {
     spriteFullSize = tileSize * player.radiusFactor * 2;
   }
 
-  let halfSize = spriteFullSize * 0.5 * 1.46;
+  // halfSize = mitad del sprite * margen pequeño para evitar quedarse pegado
+  let halfSize = spriteFullSize * 0.5 * 1.55; // 0.95 = 5% de tolerancia (ajusta si quieres)
 
   let left = px - halfSize;
   let right = px + halfSize;
