@@ -608,7 +608,7 @@ function collidesWithWallAtPixel(px, py) {
   }
 
   // halfSize = mitad del sprite * margen pequeño para evitar quedarse pegado
-  let halfSize = spriteFullSize * 0.5 * 1.55; // 0.95 = 5% de tolerancia (ajusta si quieres)
+  let halfSize = spriteFullSize * 0.5 * 1.5; // 0.95 = 5% de tolerancia (ajusta si quieres)
 
   let left = px - halfSize;
   let right = px + halfSize;
@@ -801,4 +801,102 @@ let exampleLevel = [
   [1,0,0,0,0,0,0,0,0,0,0,1], // puerta entre tiles en sur
   [1,1,1,1,1,5,5,1,1,1,1,1]
 ];
+
+// -----------------------------
+// SISTEMA DE SALAS (añadir al final del archivo)
+// -----------------------------
+
+// Definimos varias salas (ejemplo). Asegurate que cada sala tenga un '2' si querés que loadLevel coloque ahí al jugador.
+// Pueden tener distinto tamaño lógico; usamos COLS/ROWS constantes del juego.
+const levelA = [
+  [1,1,1,1,1,5,5,1,1,1,1,1],
+  [1,0,0,0,0,0,0,0,0,0,4,1],
+  [1,0,1,1,0,0,0,0,0,0,0,1],
+  [5,0,1,0,0,0,0,1,1,1,0,5],
+  [5,0,0,0,0,0,0,0,0,0,2,5],
+  [1,0,0,0,0,0,0,0,0,3,0,1],
+  [1,0,0,0,0,0,0,0,0,0,0,1], // puerta entre tiles en sur
+  [1,1,1,1,1,5,5,1,1,1,1,1]
+];
+
+const levelB = [
+  [1,1,1,1,1,5,5,1,1,1,1,1],
+  [1,0,0,0,0,0,0,0,0,0,4,1],
+  [1,0,1,1,1,1,0,0,0,0,0,1],
+  [5,0,1,0,0,0,0,1,1,1,0,5],
+  [5,2,0,0,,0,0,0,0,0,0,5],
+  [1,0,0,0,0,0,0,0,0,3,0,1],
+  [1,0,0,0,0,0,0,0,0,0,0,1], // puerta entre tiles en sur
+  [1,1,1,1,1,5,5,1,1,1,1,1]
+];
+
+const levelC = [
+  [1,1,1,1,1,5,5,1,1,1,1,1],
+  [1,0,0,0,0,2,2,0,0,0,4,1],
+  [1,0,1,1,0,0,0,0,0,0,0,1],
+  [5,0,1,0,0,0,0,1,1,1,0,5],
+  [5,0,0,0,0,0,0,1,0,0,0,5],
+  [1,0,0,0,0,0,0,0,0,3,0,1],
+  [1,0,0,0,0,0,0,0,0,0,0,1], // puerta entre tiles en sur
+  [1,1,1,1,1,5,5,1,1,1,1,1]
+];
+
+// array de niveles y índice actual
+const levels = [levelA, levelB, levelC];
+let currentLevelIndex = 0;
+
+// Sobrescribimos exampleLevel por el inicial y cargamoslo si querés (loadLevel ya se llama en setup, pero esto asegura valor)
+exampleLevel = levels[currentLevelIndex];
+
+// evitamos transiciones múltiples: pequeño cooldown en ms
+let lastLevelTransition = 0;
+const LEVEL_TRANSITION_COOLDOWN = 500; // ms
+
+// Función que detecta si el jugador está sobre una celda puerta (5) y cambia de sala
+function checkDoorTransition() {
+  // seguridad: que tileSize y offsetX/offsetY estén definidos
+  if (typeof tileSize !== 'number' || typeof offsetX !== 'number' || typeof offsetY !== 'number') return;
+  if (!exampleLevel) return;
+
+  // convertir la posición del jugador a coordenadas de tile (índices)
+  const cx = Math.floor((player.x - offsetX) / tileSize);
+  const cy = Math.floor((player.y - offsetY) / tileSize);
+
+  // fuera del mapa -> nada
+  if (cx < 0 || cx >= COLS || cy < 0 || cy >= ROWS) return;
+
+  // si estamos encima de una puerta y pasó el cooldown
+  if (exampleLevel[cy][cx] === 5 && millis() - lastLevelTransition > LEVEL_TRANSITION_COOLDOWN) {
+    // elegir próximo nivel (aquí avanzo en secuencia; cambia por la lógica que prefieras)
+    const nextIndex = (currentLevelIndex + 1) % levels.length;
+
+    // si querés que no haga wrap-around (llegar al final y quedarse): usa:
+    // if (currentLevelIndex >= levels.length - 1) return;
+
+    currentLevelIndex = nextIndex;
+    exampleLevel = levels[currentLevelIndex];
+
+    // Re-cargar el nivel (reconstruye muros, puertas, llaves, enemigos y posicion del jugador si hay un '2')
+    loadLevel(exampleLevel);
+
+    // Si el nivel NO contiene un '2' para posicion inicial, colocamos al jugador en el centro del área jugable:
+    // (loadLevel coloca player.x/player.y si encuentra un 2)
+    if (typeof player.x !== 'number' || typeof player.y !== 'number') {
+      player.x = offsetX + playW / 2;
+      player.y = offsetY + playH / 2;
+    }
+
+    lastLevelTransition = millis();
+    console.log("Transición: sala " + (currentLevelIndex + 1));
+  }
+}
+
+// Enganchamos la comprobación al final de draw()
+// guardamos referencia a draw original (ya existe draw en tu código)
+const __orig_draw_for_levels = draw;
+draw = function() {
+  __orig_draw_for_levels.apply(this, arguments);
+  // llamar después de dibujar/actualizar para que player.x,y estén actualizados
+  checkDoorTransition();
+};
 
