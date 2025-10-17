@@ -803,7 +803,7 @@ let exampleLevel = [
 ];
 
 // -----------------------------
-// SISTEMA DE SALAS (añadir al final del archivo)
+// SISTEMA DE SALAS 
 // -----------------------------
 
 // Definimos varias salas (ejemplo). Asegurate que cada sala tenga un '2' si querés que loadLevel coloque ahí al jugador.
