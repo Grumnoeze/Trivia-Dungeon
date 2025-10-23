@@ -14,6 +14,11 @@ let offsetX, offsetY;
 let playerSprites = {};
 let currentPlayerImg;
 
+let isTransitioning = false;
+let fadeAlpha = 0;
+let fadeDirection = 1; // 1 = oscurecer, -1 = aclarar
+let pendingMove = null; // guardará hacia dónde moverse (dx, dy)
+
 let player = {
   x: 0,
   y: 0,
@@ -708,6 +713,7 @@ function collidesWithWallAtPixel(px, py) {
 // setup
 
 function setup() {
+
   const saved = loadBase();
 
   if (!isBrowserFullscreen() && !document.fullscreenElement) {
@@ -942,32 +948,76 @@ function moveToRoom(dx, dy) {
 // -----------------------------
 // DETECTAR PUERTAS Y CAMBIAR SALA
 // -----------------------------
+
+
+
 function checkDoorTransition() {
+  if (isTransitioning) return; // evitar movimiento mientras se hace el fade
+
   const cx = Math.floor((player.x - offsetX) / tileSize);
   const cy = Math.floor((player.y - offsetY) / tileSize);
+  
   if (cx < 0 || cx >= SALA_ANCHO || cy < 0 || cy >= SALA_ALTO) return;
 
   // arriba
   if (cy === 0 && exampleLevel[cy][cx] === 5) {
-    moveToRoom(0, -1);
-    player.y = offsetY + (SALA_ALTO - 1) * tileSize;
+    pendingMove = { dx: 0, dy: -1, posY: offsetY + (SALA_ALTO - 1) * tileSize };
+    isTransitioning = true;
+    fadeDirection = 1; // oscurecer
   }
   // abajo
   else if (cy === SALA_ALTO - 1 && exampleLevel[cy][cx] === 5) {
-    moveToRoom(0, +1);
-    player.y = offsetY + tileSize;
+    pendingMove = { dx: 0, dy: +1, posY: offsetY + tileSize };
+    isTransitioning = true;
+    fadeDirection = 1;
   }
   // izquierda
   else if (cx === 0 && exampleLevel[cy][cx] === 5) {
-    moveToRoom(-1, 0);
-    player.x = offsetX + (SALA_ANCHO - 1) * tileSize;
+    pendingMove = { dx: -1, dy: 0, posX: offsetX + (SALA_ANCHO - 1) * tileSize };
+    isTransitioning = true;
+    fadeDirection = 1;
   }
   // derecha
   else if (cx === SALA_ANCHO - 1 && exampleLevel[cy][cx] === 5) {
-    moveToRoom(+1, 0);
-    player.x = offsetX + tileSize;
+    pendingMove = { dx: +1, dy: 0, posX: offsetX + tileSize };
+    isTransitioning = true;
+    fadeDirection = 1;
   }
 }
+
+function handleTransition() {
+  if (!isTransitioning) return;
+
+  // Dibuja un rectángulo negro encima de todo
+  fill(0, fadeAlpha);
+  noStroke();
+  rect(0, 0, width, height);
+
+  fadeAlpha += 15 * fadeDirection; // velocidad del fade
+
+  // Si ya está completamente negro...
+  if (fadeDirection === 1 && fadeAlpha >= 255) {
+    fadeAlpha = 255;
+    fadeDirection = -1;
+
+    // Hacemos el cambio de sala durante el "negro total"
+    if (pendingMove) {
+      moveToRoom(pendingMove.dx, pendingMove.dy);
+
+      if (pendingMove.posX !== undefined) player.x = pendingMove.posX;
+      if (pendingMove.posY !== undefined) player.y = pendingMove.posY;
+
+      pendingMove = null;
+    }
+  }
+
+  // Cuando termina de aclarar, fin de la transición
+  if (fadeDirection === -1 && fadeAlpha <= 0) {
+    fadeAlpha = 0;
+    isTransitioning = false;
+  }
+}
+
 
 // -----------------------------
 // Integración con draw()
@@ -976,4 +1026,5 @@ const __orig_draw_for_levels = draw;
 draw = function() {
   __orig_draw_for_levels.apply(this, arguments);
   checkDoorTransition();
+  handleTransition();
 };
