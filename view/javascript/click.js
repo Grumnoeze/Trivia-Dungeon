@@ -276,6 +276,44 @@ function handlePlayerMovement() {
   player.y = constrain(player.y, offsetY + r, offsetY + playH - r);
 }
 
+function updateEnemies() {
+  for (let e of enemies) {
+    // cambiar dirección cada cierto tiempo
+    if (millis() > e.dirTimer) {
+      e.vx = random([-1, 0, 1]);
+      e.vy = random([-1, 0, 1]);
+      // evitar quedarse quieto todo el tiempo
+      if (e.vx === 0 && e.vy === 0) e.vx = 1;
+      e.dirTimer = millis() + random(1000, 3000);
+    }
+
+    let nextX = e.x + e.vx * e.speed;
+    let nextY = e.y + e.vy * e.speed;
+
+    // si hay colisión, cambia dirección
+    if (collidesWithWallAtPixel(nextX, e.y)) {
+      e.vx *= -1;
+      nextX = e.x + e.vx * e.speed;
+    }
+    if (collidesWithWallAtPixel(e.x, nextY)) {
+      e.vy *= -1;
+      nextY = e.y + e.vy * e.speed;
+    }
+
+    // aplicar movimiento si no colisiona
+    if (!collidesWithWallAtPixel(nextX, nextY)) {
+      e.x = nextX;
+      e.y = nextY;
+    }
+
+    // mantener dentro del área jugable
+    let r = tileSize * 0.3;
+    e.x = constrain(e.x, offsetX + r, offsetX + playW - r);
+    e.y = constrain(e.y, offsetY + r, offsetY + playH - r);
+  }
+}
+
+
 
 function drawPlayer() {
   let r = tileSize * player.radiusFactor;
@@ -442,6 +480,13 @@ function loadLevel(levelArray) {
       }
     }
   }
+  // Inicializa enemigos con velocidad y dirección aleatoria
+for (let e of enemies) {
+  e.vx = random([-1, 0, 1]);
+  e.vy = random([-1, 0, 1]);
+  e.speed = tileSize * 0.019; // velocidad base
+  e.dirTimer = millis() + random(1000, 3000); // cambiar dirección cada cierto tiempo
+}
 }
 
 function drawLevel() {
@@ -961,7 +1006,7 @@ function checkDoorTransition() {
 
   // arriba
   if (cy === 0 && exampleLevel[cy][cx] === 5) {
-    pendingMove = { dx: 0, dy: -1, posY: offsetY + (SALA_ALTO - 1) * tileSize };
+    pendingMove = { dx: 0, dy: -1, posY: offsetY + (SALA_ALTO - 1.1) * tileSize };
     isTransitioning = true;
     fadeDirection = 1; // oscurecer
   }
@@ -973,7 +1018,7 @@ function checkDoorTransition() {
   }
   // izquierda
   else if (cx === 0 && exampleLevel[cy][cx] === 5) {
-    pendingMove = { dx: -1, dy: 0, posX: offsetX + (SALA_ANCHO - 1) * tileSize };
+    pendingMove = { dx: -1, dy: 0, posX: offsetX + (SALA_ANCHO - 1.1) * tileSize };
     isTransitioning = true;
     fadeDirection = 1;
   }
@@ -1025,6 +1070,8 @@ function handleTransition() {
 const __orig_draw_for_levels = draw;
 draw = function() {
   __orig_draw_for_levels.apply(this, arguments);
+  updateEnemies();
+
   checkDoorTransition();
   handleTransition();
 };
