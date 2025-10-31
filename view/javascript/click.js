@@ -1,3 +1,4 @@
+
 // Llave de almacenamiento para el anchoalto del canvas. No tocar.
 const STORAGE_KEY = 'myGameBaseCanvasSize_v1';
 
@@ -19,13 +20,13 @@ let fadeAlpha = 0;
 let fadeDirection = 1; // 1 = oscurecer, -1 = aclarar
 let pendingMove = null; // guardará hacia dónde moverse (dx, dy)
 
-let enemiesSprites={};
+let enemiesSprites = {};
 
-let keySprite={};
+let keySprite = {};
 
 let juegoIniciado = false;
 
-let dificultad=0;
+let dificultad = 0;
 
 let isQuestionActive = false;
 let currentQuestion = null;
@@ -60,7 +61,8 @@ let player = {
   vx: 0,
   vy: 0,
   // velocidad relativa al tileSize — se calcula dinámicamente en draw
-  radiusFactor: 0.32 // radio del jugador en relación al tile
+  radiusFactor: 0.32,  // radio del jugador en relación al tile
+  dir: "down"
 };
 
 let wallTop, wallBottom, wallLeft, wallRight;
@@ -79,7 +81,7 @@ function mousePressed() {
 
     if (dificultad > 0) {
       juegoIniciado = true;
-      
+
     }
     return;
   }
@@ -94,14 +96,14 @@ function mousePressed() {
       ) {
         // clic sobre una opción
         if (i === currentQuestion.correct) {
-          
+
           isQuestionActive = false;
           currentQuestion = null;
-          
+
 
           //sistema de sumar puntos
         } else {
-          
+
           isQuestionActive = false;
           currentQuestion = null;
 
@@ -111,7 +113,6 @@ function mousePressed() {
     }
   }
 }
-
 
 function mostrarBoton(texto, x, y, w, h) {
   fill(180);
@@ -123,77 +124,6 @@ function mostrarBoton(texto, x, y, w, h) {
 }
 function clickEnBoton(x, y, w, h) {
   return mouseX > x && mouseX < x + w && mouseY > y && mouseY < y + h;
-}
-
-// Cargar imágenes
-function preload() {
-  // Jugador
-  playerIdle = loadImage("../src/idle.png");
-  playerWalk = loadImage("../src/walk.png");
-  currentSprite = playerIdle;
-
-  // Texturas de muros
-  wallTop    = loadImage("../src/sprites/walls/dungeon_wall_top.png");
-  wallBottom = loadImage("../src/sprites/walls/dungeon_wall_bottom.png");
-  wallLeft   = loadImage("../src/sprites/walls/dungeon_wall_left.png");
-  wallRight  = loadImage("../src/sprites/walls/dungeon_wall_right.png");
-
-  wallCorner1 = loadImage("../src/sprites/walls/dungeon_wall_corner1.png"); // arriba izq
-  wallCorner2 = loadImage("../src/sprites/walls/dungeon_wall_corner2.png"); // arriba der
-  wallCorner3 = loadImage("../src/sprites/walls/dungeon_wall_corner3.png"); // abajo izq
-  wallCorner4 = loadImage("../src/sprites/walls/dungeon_wall_corner4.png"); // abajo der
-
-  dungeonFloor = loadImage("../src/sprites/walls/dungeon_floor.png");
-}
-
-// Inicializar jugador en el centro 
-function initPlayer() {
-  playerX = width / 2;
-  playerY = height / 2;
-}
-
-// Dibujar jugador
-function drawPlayer() {
-  // Detectar movimiento
-  isMoving = false;
-  let nextX = playerX;
-  let nextY = playerY;
-
-  if (keyIsDown(LEFT_ARROW) || keyIsDown(65)) {
-    nextX -= speed;
-    isMoving = true;
-  }
-  if (keyIsDown(RIGHT_ARROW) || keyIsDown(68)) {
-    nextX += speed;
-    isMoving = true;
-  }
-  if (keyIsDown(UP_ARROW) || keyIsDown(87)) {
-    nextY -= speed;
-    isMoving = true;
-  }
-  if (keyIsDown(DOWN_ARROW) || keyIsDown(83)) {
-    nextY += speed;
-    isMoving = true;
-  }
-
-  // Chequear colisión
-  if (!collidesWithWall(nextX, nextY)) {
-    playerX = nextX;
-    playerY = nextY;
-  }
-
-  // Animación: alternar entre idle y walk
-  if (isMoving) {
-    if (millis() - animTimer > animInterval) {
-      animTimer = millis();
-      currentSprite = (currentSprite === playerIdle) ? playerWalk : playerIdle;
-    }
-  } else {
-    currentSprite = playerIdle;
-  }
-
-  // Dibujar sprite
-  image(currentSprite, playerX, playerY, tileSize * 0.9, tileSize * 0.9);
 }
 
 // =======================
@@ -214,10 +144,10 @@ let room = [];
 
 function preload() {
   // usa tus rutas reales aquí
-  wallTop     = loadImage("../src/sprites/tiles/dungeon/dungeon_wall_top.png");
-  wallBottom  = loadImage("../src/sprites/tiles/dungeon/dungeon_wall_bottom.png");
-  wallLeft    = loadImage("../src/sprites/tiles/dungeon/dungeon_wall_left.png");
-  wallRight   = loadImage("../src/sprites/tiles/dungeon/dungeon_wall_right.png");
+  wallTop = loadImage("../src/sprites/tiles/dungeon/dungeon_wall_top.png");
+  wallBottom = loadImage("../src/sprites/tiles/dungeon/dungeon_wall_bottom.png");
+  wallLeft = loadImage("../src/sprites/tiles/dungeon/dungeon_wall_left.png");
+  wallRight = loadImage("../src/sprites/tiles/dungeon/dungeon_wall_right.png");
 
   wallCorner1 = loadImage("../src/sprites/tiles/dungeon/dungeon_wall_corner1.png"); // arriba-izq
   wallCorner2 = loadImage("../src/sprites/tiles/dungeon/dungeon_wall_corner2.png"); // arriba-der
@@ -242,15 +172,15 @@ function preload() {
   playerSprites.down = loadImage("../src/sprites/player/downwalk1.png");
   playerSprites.left = loadImage("../src/sprites/player/leftwalk1.png");
   playerSprites.right = loadImage("../src/sprites/player/rightwalk1.png");
-  playerSprites.up.atk = loadImage("../src/sprites/player/player_atk_up_2.png");
-  playerSprites.down.atk = loadImage("../src/sprites/player/player_atk_down_2.png");
-  playerSprites.left.atk = loadImage("../src/sprites/player/player_atk_left_2.png");
-  playerSprites.right.atk = loadImage("../src/sprites/player/player_atk_right_2.png");
+  playerSprites.atku = loadImage("../src/sprites/player/player_atk_up_2.png");
+  playerSprites.atkd = loadImage("../src/sprites/player/player_atk_down_2.png");
+  playerSprites.atkl = loadImage("../src/sprites/player/player_atk_left_2.png");
+  playerSprites.atkr = loadImage("../src/sprites/player/player_atk_right_2.png");
 
-  
-  enemiesSprites=loadImage("../src/sprites/enemies/crab/enemy_crab_2.png");
+
+  enemiesSprites = loadImage("../src/sprites/enemies/crab/enemy_crab_2.png");
   keySprite = loadImage("../src/sprites/items/key.png");
-  
+
   heartSprite = loadImage("../src/sprites/ui/heart_full.png");
 
   currentPlayerImg = playerSprites.down;
@@ -325,13 +255,13 @@ function handlePlayerMovement() {
   let maxSpeed = tileSize * 0.08; // ajusta para hacer más/menos rápido
 
   // leer input
-  let left  = keyIsDown(65) || keyIsDown(37); // A, ←
+  let left = keyIsDown(65) || keyIsDown(37); // A, ←
   let right = keyIsDown(68) || keyIsDown(39); // D, →
-  let up    = keyIsDown(87) || keyIsDown(38); // W, ↑
-  let down  = keyIsDown(83) || keyIsDown(40); // S, ↓
+  let up = keyIsDown(87) || keyIsDown(38); // W, ↑
+  let down = keyIsDown(83) || keyIsDown(40); // S, ↓
 
   let dx = (right ? 1 : 0) - (left ? 1 : 0);
-  let dy = (down  ? 1 : 0) - (up   ? 1 : 0);
+  let dy = (down ? 1 : 0) - (up ? 1 : 0);
 
   // normalizar diagonal para mantener misma velocidad
   if (dx !== 0 && dy !== 0) {
@@ -380,23 +310,23 @@ function handlePlayerMovement() {
   player.y = constrain(player.y, offsetY + r, offsetY + playH - r);
 
   // 🔸 Verificar interacción con llaves
-for (let i = 0; i < keys.length; i++) {
-  let k = keys[i];
-  let d = dist(player.x, player.y, k.x, k.y);
+  for (let i = 0; i < keys.length; i++) {
+    let k = keys[i];
+    let d = dist(player.x, player.y, k.x, k.y);
 
-  if (d < tileSize * 0.5 && !isQuestionActive) {
-    showQuestion();       // mostrar pregunta
-    keys.splice(i, 1);// eliminar la llave del mapa
-    break;
+    if (d < tileSize * 0.5 && !isQuestionActive) {
+      showQuestion();       // mostrar pregunta
+      keys.splice(i, 1);// eliminar la llave del mapa
+      break;
+    }
   }
-}
 }
 
 
 function showQuestion() {
   isQuestionActive = true;
   currentQuestion = random(questions);
-  
+
 }
 
 function handleAttack() {
@@ -405,20 +335,32 @@ function handleAttack() {
     isAttacking = true;
     attackStartTime = millis();
 
-    // Cambiar sprite según dirección actual
-    if (currentPlayerImg === playerSprites.up) currentPlayerImg = playerSprites.up_atk;
-    else if (currentPlayerImg === playerSprites.down) currentPlayerImg = playerSprites.down_atk;
-    else if (currentPlayerImg === playerSprites.left) currentPlayerImg = playerSprites.left_atk;
-    else if (currentPlayerImg === playerSprites.right) currentPlayerImg = playerSprites.right_atk;
+    // Guardamos la dirección actual del jugador
+    if (currentPlayerImg === playerSprites.up) {
+      currentPlayerImg = playerSprites.atku;
+      player.dir = "up";
+    }
+    else if (currentPlayerImg === playerSprites.down) {
+      currentPlayerImg = playerSprites.atkd;
+      player.dir = "down";
+    }
+    else if (currentPlayerImg === playerSprites.left) {
+      currentPlayerImg = playerSprites.atkl;
+      player.dir = "left";
+    }
+    else if (currentPlayerImg === playerSprites.right) {
+      currentPlayerImg = playerSprites.atkr;
+      player.dir = "right";
+    }
   }
 
   // Terminar ataque después de duración
   if (isAttacking && millis() - attackStartTime > attackDuration) {
     isAttacking = false;
-    if (currentPlayerImg === playerSprites.up_atk) currentPlayerImg = playerSprites.up;
-    else if (currentPlayerImg === playerSprites.down_atk) currentPlayerImg = playerSprites.down;
-    else if (currentPlayerImg === playerSprites.left_atk) currentPlayerImg = playerSprites.left;
-    else if (currentPlayerImg === playerSprites.right_atk) currentPlayerImg = playerSprites.right;
+    if (player.dir === "up") currentPlayerImg = playerSprites.up;
+    else if (player.dir === "down") currentPlayerImg = playerSprites.down;
+    else if (player.dir === "left") currentPlayerImg = playerSprites.left;
+    else if (player.dir === "right") currentPlayerImg = playerSprites.right;
   }
 }
 
@@ -459,27 +401,65 @@ function updateEnemies() {
   }
 }
 
-
-
 function drawPlayer() {
   let r = tileSize * player.radiusFactor;
 
   // Determinar dirección (basado en velocidad)
-  if (player.vx !== 0 || player.vy !== 0) {
+  if (!isAttacking && (player.vx !== 0 || player.vy !== 0)) {
     if (Math.abs(player.vx) > Math.abs(player.vy)) {
       // Movimiento horizontal domina
-      if (player.vx > 0) currentPlayerImg = playerSprites.right;
-      else currentPlayerImg = playerSprites.left;
+      if (player.vx > 0) {
+        currentPlayerImg = playerSprites.right;
+        player.dir = "right";
+      } else {
+        currentPlayerImg = playerSprites.left;
+        player.dir = "left";
+      }
     } else {
       // Movimiento vertical domina
-      if (player.vy > 0) currentPlayerImg = playerSprites.down;
-      else currentPlayerImg = playerSprites.up;
+      if (player.vy > 0) {
+        currentPlayerImg = playerSprites.down;
+        player.dir = "down";
+      } else {
+        currentPlayerImg = playerSprites.up;
+        player.dir = "up";
+      }
     }
   }
 
   // Dibujar sprite centrado en la posición del jugador
+
+
   imageMode(CENTER);
-  image(currentPlayerImg, player.x, player.y, tileSize, tileSize);
+
+  // Si está atacando, dibujar el sprite extendido según dirección
+  if (isAttacking) {
+    switch (player.dir) {
+      case "up":
+        // Sprite 16x32 extendido hacia arriba
+        image(currentPlayerImg, player.x, player.y - tileSize / 2, tileSize, tileSize * 2);
+        break;
+
+      case "down":
+        // Sprite 16x32 extendido hacia abajo
+        image(currentPlayerImg, player.x, player.y + tileSize / 2, tileSize, tileSize * 2);
+        break;
+
+      case "left":
+        // Sprite 32x16 extendido hacia la izquierda
+        image(currentPlayerImg, player.x - tileSize / 2, player.y, tileSize * 2, tileSize);
+        break;
+
+      case "right":
+        // Sprite 32x16 extendido hacia la derecha
+        image(currentPlayerImg, player.x + tileSize / 2, player.y, tileSize * 2, tileSize);
+        break;
+    }
+  }
+  else {
+    // Si no está atacando, sprite normal 16x16
+    image(currentPlayerImg, player.x, player.y, tileSize, tileSize);
+  }
 }
 
 function calculatePlayArea() {
@@ -530,8 +510,8 @@ function loadLevel(levelArray) {
   enemies = [];
   keys = [];
   doors = [];
-  
-  let seen = Array.from({length: ROWS}, () => Array(COLS).fill(false));
+
+  let seen = Array.from({ length: ROWS }, () => Array(COLS).fill(false));
 
   currentLevel = levelArray;
 
@@ -561,13 +541,13 @@ function loadLevel(levelArray) {
           kind = "corner_br";
 
         } else if (gy === 0) {
-            kind = "top";
-          } else if (gy === ROWS - 1) {
-            kind = "bottom";
-          } else if (gx === 0) {
-            kind = "left";
-          } else if (gx === COLS - 1) {
-            kind = "right";
+          kind = "top";
+        } else if (gy === ROWS - 1) {
+          kind = "bottom";
+        } else if (gx === 0) {
+          kind = "left";
+        } else if (gx === COLS - 1) {
+          kind = "right";
 
         } else if (!n && !s && !w && !e) {
           kind = "single";
@@ -577,18 +557,18 @@ function loadLevel(levelArray) {
           else if (!s) kind = "vertical_bottom";
           else kind = "vertical_mid";
 
-        // 🔹 Línea horizontal
+          // 🔹 Línea horizontal
         } else if (!n && !s && (w || e)) {
           if (!w) kind = "horizontal_left";
           else if (!e) kind = "horizontal_right";
           else kind = "horizontal_mid";
         } else {
 
-        if (!n && !w) kind = 'corner_tl';
-        else if (!n && !e) kind = 'corner_tr';
-        else if (!s && !w) kind = 'corner_bl';
-        else if (!s && !e) kind = 'corner_br';
-        else kind = 'top'; // fallback (completamente rodeado)
+          if (!n && !w) kind = 'corner_tl';
+          else if (!n && !e) kind = 'corner_tr';
+          else if (!s && !w) kind = 'corner_bl';
+          else if (!s && !e) kind = 'corner_br';
+          else kind = 'top'; // fallback (completamente rodeado)
         }
 
         walls.push({ gx, gy, x: px, y: py, kind });
@@ -608,21 +588,21 @@ function loadLevel(levelArray) {
         });
       } else if (val === 4) {
         keys.push({ x: px + tileSize / 2, y: py + tileSize / 2, sprite: keySprite });
-      }  else if (val === 5) {
+      } else if (val === 5) {
         // puertas: agrupar en pares horizontal/vertical o single
         if (seen[gy][gx]) continue; // ya procesado por su pareja
         // Preferimos pares horizontales si existe vecino a la derecha
         if (gx + 1 < COLS && levelArray[gy][gx + 1] === 5 && !seen[gy][gx + 1]) {
           // par horizontal: left = half1, right = half2
           const pxR = offsetX + (gx + 1) * tileSize;
-          doors.push({ gx: gx,     gy: gy, x: px,   y: py, half: 1, size: 2, orient: 'h' });
-          doors.push({ gx: gx + 1, gy: gy, x: pxR,  y: py, half: 2, size: 2, orient: 'h' });
+          doors.push({ gx: gx, gy: gy, x: px, y: py, half: 1, size: 2, orient: 'h' });
+          doors.push({ gx: gx + 1, gy: gy, x: pxR, y: py, half: 2, size: 2, orient: 'h' });
           seen[gy][gx] = true;
           seen[gy][gx + 1] = true;
         } else if (gy + 1 < ROWS && levelArray[gy + 1][gx] === 5 && !seen[gy + 1][gx]) {
           // par vertical: top = half1, bottom = half2
           const pyB = offsetY + (gy + 1) * tileSize;
-          doors.push({ gx: gx, gy: gy,     x: px, y: py,  half: 1, size: 2, orient: 'v' });
+          doors.push({ gx: gx, gy: gy, x: px, y: py, half: 1, size: 2, orient: 'v' });
           doors.push({ gx: gx, gy: gy + 1, x: px, y: pyB, half: 2, size: 2, orient: 'v' });
           seen[gy][gx] = true;
           seen[gy + 1][gx] = true;
@@ -634,7 +614,7 @@ function loadLevel(levelArray) {
       }
     }
   }
-  
+
 }
 
 function drawLevel() {
@@ -690,99 +670,99 @@ function drawLevel() {
   }
 
   // llaves
-  
+
   for (let k of keys) {
     imageMode(CENTER);
     image(k.sprite, k.x, k.y, tileSize * 0.8, tileSize * 0.8);
   }
   // asegúrate de tener imageMode(CENTER) antes de esto
-imageMode(CENTER);
+  imageMode(CENTER);
 
-for (let d of doors) {
-  const cx = d.x + tileSize / 2;
-  const cy = d.y + tileSize / 2;
+  for (let d of doors) {
+    const cx = d.x + tileSize / 2;
+    const cy = d.y + tileSize / 2;
 
-  push();
-  translate(cx, cy);
+    push();
+    translate(cx, cy);
 
-  let angle = 0;
-  let img = dungeon_door; // fallback
+    let angle = 0;
+    let img = dungeon_door; // fallback
 
-  if (d.size === 2) {
-    if (d.orient === 'h') {
-      // Puerta horizontal (Norte / Sur) - dos tiles lado a lado
-      const leftG = (d.half === 1) ? d.gx : d.gx - 1;
+    if (d.size === 2) {
+      if (d.orient === 'h') {
+        // Puerta horizontal (Norte / Sur) - dos tiles lado a lado
+        const leftG = (d.half === 1) ? d.gx : d.gx - 1;
+        const gy = d.gy;
+
+        const aboveBoth = isWallOrEdge(currentLevel, leftG, gy - 1) && isWallOrEdge(currentLevel, leftG + 1, gy - 1);
+        const belowBoth = isWallOrEdge(currentLevel, leftG, gy + 1) && isWallOrEdge(currentLevel, leftG + 1, gy + 1);
+
+        if (aboveBoth && !belowBoth) angle = 0;        // Norte
+        else if (belowBoth && !aboveBoth) angle = PI;  // Sur
+        else angle = 0; // fallback
+
+        // swap para la mitad izquierda/derecha si la puerta está rotada 180°
+        let leftAsset = dungeon_door_half1;
+        let rightAsset = dungeon_door_half2;
+        if (Math.abs(angle - PI) < 0.001) {
+          [leftAsset, rightAsset] = [rightAsset, leftAsset];
+        }
+        img = (d.half === 1) ? leftAsset : rightAsset;
+
+      } else if (d.orient === 'v') {
+        // Puerta vertical (Este / Oeste) - dos tiles uno encima del otro
+        const topG = d.gy - (d.half === 2 ? 1 : 0);
+        const gx = d.gx;
+
+        const leftBlocked = isWallOrEdge(currentLevel, gx - 1, topG) && isWallOrEdge(currentLevel, gx - 1, topG + 1);
+        const rightBlocked = isWallOrEdge(currentLevel, gx + 1, topG) && isWallOrEdge(currentLevel, gx + 1, topG + 1);
+
+        if (rightBlocked && !leftBlocked) {
+          angle = HALF_PI;   // Este
+        } else if (leftBlocked && !rightBlocked) {
+          angle = -HALF_PI;  // Oeste
+        } else {
+          // desempate: contamos muros en un rango y elegimos la mayoría
+          let leftCount = 0, rightCount = 0;
+          for (let yy = topG - 1; yy <= topG + 2; yy++) {
+            if (isWallOrEdge(currentLevel, gx - 1, yy)) leftCount++;
+            if (isWallOrEdge(currentLevel, gx + 1, yy)) rightCount++;
+          }
+          angle = (rightCount >= leftCount) ? HALF_PI : -HALF_PI;
+        }
+
+        // FIX clave: para vertical, cuando la puerta apunta al Oeste (-HALF_PI)
+        // hay que *swap* las mitades para que la mitad superior/inferior
+        // encajen correctamente tras la rotación.
+        if (Math.abs(angle - (-HALF_PI)) < 0.001) {
+          // si es Oeste, invertimos las mitades al dibujar
+          img = (d.half === 1) ? dungeon_door_half2 : dungeon_door_half1;
+        } else {
+          // Este (o fallback): mitades normales
+          img = (d.half === 1) ? dungeon_door_half1 : dungeon_door_half2;
+        }
+      }
+
+      rotate(angle);
+      image(img, 0, 0, tileSize, tileSize);
+
+    } else {
+      // Puerta single (1 tile)
+      const gx = d.gx;
       const gy = d.gy;
 
-      const aboveBoth = isWallOrEdge(currentLevel, leftG, gy - 1) && isWallOrEdge(currentLevel, leftG + 1, gy - 1);
-      const belowBoth = isWallOrEdge(currentLevel, leftG, gy + 1) && isWallOrEdge(currentLevel, leftG + 1, gy + 1);
+      if (isWallOrEdge(currentLevel, gx, gy - 1)) angle = 0;
+      else if (isWallOrEdge(currentLevel, gx, gy + 1)) angle = PI;
+      else if (isWallOrEdge(currentLevel, gx + 1, gy)) angle = HALF_PI;
+      else if (isWallOrEdge(currentLevel, gx - 1, gy)) angle = -HALF_PI;
+      else angle = 0;
 
-      if (aboveBoth && !belowBoth) angle = 0;        // Norte
-      else if (belowBoth && !aboveBoth) angle = PI;  // Sur
-      else angle = 0; // fallback
-
-      // swap para la mitad izquierda/derecha si la puerta está rotada 180°
-      let leftAsset = dungeon_door_half1;
-      let rightAsset = dungeon_door_half2;
-      if (Math.abs(angle - PI) < 0.001) {
-        [leftAsset, rightAsset] = [rightAsset, leftAsset];
-      }
-      img = (d.half === 1) ? leftAsset : rightAsset;
-
-    } else if (d.orient === 'v') {
-      // Puerta vertical (Este / Oeste) - dos tiles uno encima del otro
-      const topG = d.gy - (d.half === 2 ? 1 : 0);
-      const gx = d.gx;
-
-      const leftBlocked  = isWallOrEdge(currentLevel, gx - 1, topG) && isWallOrEdge(currentLevel, gx - 1, topG + 1);
-      const rightBlocked = isWallOrEdge(currentLevel, gx + 1, topG) && isWallOrEdge(currentLevel, gx + 1, topG + 1);
-
-      if (rightBlocked && !leftBlocked) {
-        angle = HALF_PI;   // Este
-      } else if (leftBlocked && !rightBlocked) {
-        angle = -HALF_PI;  // Oeste
-      } else {
-        // desempate: contamos muros en un rango y elegimos la mayoría
-        let leftCount = 0, rightCount = 0;
-        for (let yy = topG - 1; yy <= topG + 2; yy++) {
-          if (isWallOrEdge(currentLevel, gx - 1, yy)) leftCount++;
-          if (isWallOrEdge(currentLevel, gx + 1, yy)) rightCount++;
-        }
-        angle = (rightCount >= leftCount) ? HALF_PI : -HALF_PI;
-      }
-
-      // FIX clave: para vertical, cuando la puerta apunta al Oeste (-HALF_PI)
-      // hay que *swap* las mitades para que la mitad superior/inferior
-      // encajen correctamente tras la rotación.
-      if (Math.abs(angle - (-HALF_PI)) < 0.001) {
-        // si es Oeste, invertimos las mitades al dibujar
-        img = (d.half === 1) ? dungeon_door_half2 : dungeon_door_half1;
-      } else {
-        // Este (o fallback): mitades normales
-        img = (d.half === 1) ? dungeon_door_half1 : dungeon_door_half2;
-      }
+      rotate(angle);
+      image(dungeon_door, 0, 0, tileSize, tileSize);
     }
 
-    rotate(angle);
-    image(img, 0, 0, tileSize, tileSize);
-
-  } else {
-    // Puerta single (1 tile)
-    const gx = d.gx;
-    const gy = d.gy;
-
-    if (isWallOrEdge(currentLevel, gx, gy - 1)) angle = 0;
-    else if (isWallOrEdge(currentLevel, gx, gy + 1)) angle = PI;
-    else if (isWallOrEdge(currentLevel, gx + 1, gy)) angle = HALF_PI;
-    else if (isWallOrEdge(currentLevel, gx - 1, gy)) angle = -HALF_PI;
-    else angle = 0;
-
-    rotate(angle);
-    image(dungeon_door, 0, 0, tileSize, tileSize);
+    pop();
   }
-
-  pop();
-}
 }
 
 function isWallOrEdge(levelArray, cx, cy) {
@@ -842,7 +822,7 @@ function collidesWithWallAtPixel(px, py) {
       // puerta (5): comprobar mitad colisionable
       if (tileVal === 5) {
         const tileLeft = offsetX + cx * tileSize;
-        const tileTop  = offsetY + ry * tileSize;
+        const tileTop = offsetY + ry * tileSize;
         const tileRight = tileLeft + tileSize;
         const tileBottom = tileTop + tileSize;
 
@@ -947,7 +927,7 @@ function drawVignette() {
   let ctx = drawingContext;
   let centerX = width / 2;
   let centerY = height / 2;
-  let maxRadius = dist(0, 0, width/2, height/2);
+  let maxRadius = dist(0, 0, width / 2, height / 2);
 
   // Crear gradiente radial
   let gradient = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, maxRadius);
@@ -970,7 +950,7 @@ function drawVignette() {
 
 
 function draw() {
-  
+
 
   // si todavía no elegiste dificultad
   if (!juegoIniciado) {
@@ -1007,8 +987,8 @@ function draw() {
 
   drawVignette();
   if (isQuestionActive && currentQuestion) {
-  drawQuestionUI();
-}
+    drawQuestionUI();
+  }
 }
 
 function drawQuestionUI() {
@@ -1032,14 +1012,14 @@ function drawQuestionUI() {
 }
 
 let exampleLevel = [
-  [1,1,1,1,1,5,5,1,1,1,1,1],
-  [1,0,0,0,0,0,0,0,0,0,4,1],
-  [1,0,1,1,0,0,0,0,0,0,0,1],
-  [5,0,1,0,0,0,0,1,1,1,0,5],
-  [5,0,0,0,2,0,0,0,0,0,0,5],
-  [1,0,0,0,0,0,0,0,0,3,0,1],
-  [1,0,0,0,0,0,0,0,0,0,0,1], // puerta entre tiles en sur
-  [1,1,1,1,1,5,5,1,1,1,1,1]
+  [1, 1, 1, 1, 1, 5, 5, 1, 1, 1, 1, 1],
+  [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 1],
+  [1, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1],
+  [5, 0, 1, 0, 0, 0, 0, 1, 1, 1, 0, 5],
+  [5, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 5],
+  [1, 0, 0, 0, 0, 0, 0, 0, 0, 3, 0, 1],
+  [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], // puerta entre tiles en sur
+  [1, 1, 1, 1, 1, 5, 5, 1, 1, 1, 1, 1]
 ];
 
 // -----------------------------
@@ -1058,98 +1038,98 @@ const SALA_ALTO = 8;
 const mapGrid = [
   [ // FILA 0
     [ // (0,0)
-      [1,1,1,1,1,1,1,1,1,1,1,1],
-      [1,4,0,0,0,0,0,0,0,3,0,1],
-      [1,0,1,1,0,0,0,0,1,0,0,1],
-      [1,0,1,0,0,0,0,1,1,0,0,5],
-      [1,0,0,0,0,0,0,0,0,0,0,5],
-      [1,0,0,0,0,0,0,0,0,3,0,1],
-      [1,0,0,0,0,0,0,0,0,0,4,1],
-      [1,1,1,1,1,5,5,1,1,1,1,1],
+      [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+      [1, 4, 0, 0, 0, 0, 0, 0, 0, 3, 0, 1],
+      [1, 0, 1, 1, 0, 0, 0, 0, 1, 0, 0, 1],
+      [1, 0, 1, 0, 0, 0, 0, 1, 1, 0, 0, 5],
+      [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5],
+      [1, 0, 0, 0, 0, 0, 0, 0, 0, 3, 0, 1],
+      [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 1],
+      [1, 1, 1, 1, 1, 5, 5, 1, 1, 1, 1, 1],
     ],
     [ // (0,1)
-      [1,1,1,1,1,1,1,1,1,1,1,1],
-      [1,0,0,3,0,0,0,0,0,0,4,1],
-      [1,0,1,1,0,0,0,0,0,0,0,1],
-      [5,0,1,0,0,4,0,1,1,0,0,5],
-      [5,0,0,0,0,0,0,0,0,0,0,5],
-      [1,0,0,0,3,0,0,0,0,0,0,1],
-      [1,0,0,0,0,0,0,0,0,0,0,1],
-      [1,1,1,1,1,5,5,1,1,1,1,1],
+      [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+      [1, 0, 0, 3, 0, 0, 0, 0, 0, 0, 4, 1],
+      [1, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1],
+      [5, 0, 1, 0, 0, 4, 0, 1, 1, 0, 0, 5],
+      [5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5],
+      [1, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 1],
+      [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+      [1, 1, 1, 1, 1, 5, 5, 1, 1, 1, 1, 1],
     ],
     [ // (0,2)
-      [1,1,1,1,1,1,1,1,1,1,1,1],
-      [1,0,0,0,0,4,0,0,0,0,0,1],
-      [1,0,1,1,0,0,0,3,0,0,0,1],
-      [5,0,1,0,0,0,0,1,1,1,0,1],
-      [5,0,0,0,0,3,0,1,0,0,0,1],
-      [1,0,0,0,0,0,0,0,4,0,0,1],
-      [1,0,0,0,0,0,0,0,0,0,0,1],
-      [1,1,1,1,1,5,5,1,1,1,1,1],
+      [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+      [1, 0, 0, 0, 0, 4, 0, 0, 0, 0, 0, 1],
+      [1, 0, 1, 1, 0, 0, 0, 3, 0, 0, 0, 1],
+      [5, 0, 1, 0, 0, 0, 0, 1, 1, 1, 0, 1],
+      [5, 0, 0, 0, 0, 3, 0, 1, 0, 0, 0, 1],
+      [1, 0, 0, 0, 0, 0, 0, 0, 4, 0, 0, 1],
+      [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+      [1, 1, 1, 1, 1, 5, 5, 1, 1, 1, 1, 1],
     ]
   ],
   [ // FILA 1
     [ // (1,0)
-      [1,1,1,1,1,5,5,1,1,1,1,1],
-      [1,0,4,0,0,0,0,0,0,0,0,1],
-      [1,0,1,1,0,0,3,0,0,0,0,1],
-      [1,0,1,0,0,0,1,1,1,0,0,5],
-      [1,0,0,0,0,0,0,1,0,0,0,5],
-      [1,0,0,0,0,0,0,0,0,4,0,1],
-      [1,0,0,0,0,0,0,0,0,0,3,1],
-      [1,1,1,1,1,5,5,1,1,1,1,1],
+      [1, 1, 1, 1, 1, 5, 5, 1, 1, 1, 1, 1],
+      [1, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+      [1, 0, 1, 1, 0, 0, 3, 0, 0, 0, 0, 1],
+      [1, 0, 1, 0, 0, 0, 1, 1, 1, 0, 0, 5],
+      [1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 5],
+      [1, 0, 0, 0, 0, 0, 0, 0, 0, 4, 0, 1],
+      [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 1],
+      [1, 1, 1, 1, 1, 5, 5, 1, 1, 1, 1, 1],
     ],
     [ // (1,1) → sala inicial
-      [1,1,1,1,1,5,5,1,1,1,1,1],
-      [1,0,0,0,0,0,0,0,0,0,4,1],
-      [1,0,1,1,0,0,0,0,1,0,0,1],
-      [5,0,1,0,0,0,0,1,1,0,0,5],
-      [5,0,0,0,0,0,0,0,0,0,0,5],
-      [1,0,0,0,0,0,0,0,0,3,0,1],
-      [1,0,0,0,0,0,0,0,0,0,0,1],
-      [1,1,1,1,1,5,5,1,1,1,1,1],
+      [1, 1, 1, 1, 1, 5, 5, 1, 1, 1, 1, 1],
+      [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 1],
+      [1, 0, 1, 1, 0, 0, 0, 0, 1, 0, 0, 1],
+      [5, 0, 1, 0, 0, 0, 0, 1, 1, 0, 0, 5],
+      [5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5],
+      [1, 0, 0, 0, 0, 0, 0, 0, 0, 3, 0, 1],
+      [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+      [1, 1, 1, 1, 1, 5, 5, 1, 1, 1, 1, 1],
     ],
     [ // (1,2)
-      [1,1,1,1,1,5,5,1,1,1,1,1],
-      [1,0,3,0,0,0,0,0,0,0,0,1],
-      [1,0,1,1,0,4,0,0,0,0,0,1],
-      [5,0,1,0,0,0,0,1,1,1,0,1],
-      [5,0,0,0,0,0,0,1,0,0,0,1],
-      [1,0,0,0,0,0,0,0,0,3,0,1],
-      [1,0,0,0,0,0,0,0,4,0,0,1],
-      [1,1,1,1,1,5,5,1,1,1,1,1],
+      [1, 1, 1, 1, 1, 5, 5, 1, 1, 1, 1, 1],
+      [1, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+      [1, 0, 1, 1, 0, 4, 0, 0, 0, 0, 0, 1],
+      [5, 0, 1, 0, 0, 0, 0, 1, 1, 1, 0, 1],
+      [5, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1],
+      [1, 0, 0, 0, 0, 0, 0, 0, 0, 3, 0, 1],
+      [1, 0, 0, 0, 0, 0, 0, 0, 4, 0, 0, 1],
+      [1, 1, 1, 1, 1, 5, 5, 1, 1, 1, 1, 1],
     ]
   ],
   [ // FILA 2
     [ // (2,0)
-      [1,1,1,1,1,5,5,1,1,1,1,1],
-      [1,3,0,0,0,0,0,0,0,0,0,1],
-      [1,0,1,1,0,0,0,0,4,0,0,1],
-      [1,0,1,0,0,3,0,1,1,1,0,5],
-      [1,0,0,0,0,0,1,1,0,0,0,5],
-      [1,0,0,0,0,0,0,0,0,3,0,1],
-      [1,0,4,0,0,0,0,0,0,0,0,1],
-      [1,1,1,1,1,1,1,1,1,1,1,1],
+      [1, 1, 1, 1, 1, 5, 5, 1, 1, 1, 1, 1],
+      [1, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+      [1, 0, 1, 1, 0, 0, 0, 0, 4, 0, 0, 1],
+      [1, 0, 1, 0, 0, 3, 0, 1, 1, 1, 0, 5],
+      [1, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 5],
+      [1, 0, 0, 0, 0, 0, 0, 0, 0, 3, 0, 1],
+      [1, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+      [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
     ],
     [ // (2,1)
-      [1,1,1,1,1,5,5,1,1,1,1,1],
-      [1,0,0,0,0,0,0,3,0,0,0,1],
-      [1,0,1,1,0,0,0,0,4,0,0,1],
-      [5,0,1,0,0,0,1,1,1,0,0,5],
-      [5,0,0,0,0,0,0,1,0,0,0,5],
-      [1,0,0,4,0,0,0,0,0,3,0,1],
-      [1,0,0,0,0,0,0,0,0,0,0,1],
-      [1,1,1,1,1,1,1,1,1,1,1,1],
+      [1, 1, 1, 1, 1, 5, 5, 1, 1, 1, 1, 1],
+      [1, 0, 0, 0, 0, 0, 0, 3, 0, 0, 0, 1],
+      [1, 0, 1, 1, 0, 0, 0, 0, 4, 0, 0, 1],
+      [5, 0, 1, 0, 0, 0, 1, 1, 1, 0, 0, 5],
+      [5, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 5],
+      [1, 0, 0, 4, 0, 0, 0, 0, 0, 3, 0, 1],
+      [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+      [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
     ],
     [ // (2,2)
-      [1,1,1,1,1,5,5,1,1,1,1,1],
-      [1,0,0,4,0,0,0,0,0,0,0,1],
-      [1,0,1,1,0,3,0,0,0,0,0,1],
-      [5,0,1,0,0,0,0,1,1,1,0,1],
-      [5,0,0,0,0,0,0,1,0,0,0,1],
-      [1,0,0,0,0,0,0,0,0,3,0,1],
-      [1,0,0,0,0,0,0,0,0,0,4,1],
-      [1,1,1,1,1,1,1,1,1,1,1,1],
+      [1, 1, 1, 1, 1, 5, 5, 1, 1, 1, 1, 1],
+      [1, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0, 1],
+      [1, 0, 1, 1, 0, 3, 0, 0, 0, 0, 0, 1],
+      [5, 0, 1, 0, 0, 0, 0, 1, 1, 1, 0, 1],
+      [5, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1],
+      [1, 0, 0, 0, 0, 0, 0, 0, 0, 3, 0, 1],
+      [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 1],
+      [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
     ]
   ]
 ];
@@ -1190,7 +1170,7 @@ function checkDoorTransition() {
 
   const cx = Math.floor((player.x - offsetX) / tileSize);
   const cy = Math.floor((player.y - offsetY) / tileSize);
-  
+
   if (cx < 0 || cx >= SALA_ANCHO || cy < 0 || cy >= SALA_ALTO) return;
 
   // arriba
@@ -1257,11 +1237,10 @@ function handleTransition() {
 // Integración con draw()
 // -----------------------------
 const __orig_draw_for_levels = draw;
-draw = function() {
+draw = function () {
   __orig_draw_for_levels.apply(this, arguments);
   updateEnemies();
-  
+
   checkDoorTransition();
   handleTransition();
 };
-
