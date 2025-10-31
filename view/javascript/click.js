@@ -19,6 +19,41 @@ let fadeAlpha = 0;
 let fadeDirection = 1; // 1 = oscurecer, -1 = aclarar
 let pendingMove = null; // guardará hacia dónde moverse (dx, dy)
 
+let enemiesSprites={};
+
+let keySprite={};
+
+let juegoIniciado = false;
+
+let dificultad=0;
+
+let isQuestionActive = false;
+let currentQuestion = null;
+
+let questions = [
+  {
+    text: "¿Cuál es la capital de Francia?",
+    options: ["Madrid", "Roma", "París", "Londres"],
+    correct: 2
+  },
+  {
+    text: "¿Cuánto es 5 × 6?",
+    options: ["11", "30", "25", "20"],
+    correct: 1
+  },
+  {
+    text: "¿Cuál de estos animales puede volar?",
+    options: ["Perro", "Gato", "Murciélago", "Pez"],
+    correct: 2
+  }
+];
+
+let usedKeys = []; // IDs o posiciones de llaves ya usadas
+
+let isAttacking = false;
+let attackStartTime = 0;
+let attackDuration = 300;
+
 let player = {
   x: 0,
   y: 0,
@@ -31,6 +66,64 @@ let player = {
 let wallTop, wallBottom, wallLeft, wallRight;
 let wallCorner1, wallCorner2, wallCorner3, wallCorner4;
 
+function mousePressed() {
+  if (!juegoIniciado) {
+    // elegir dificultad
+    if (clickEnBoton(250, 150, 200, 40)) {
+      dificultad = 1;
+    } else if (clickEnBoton(250, 210, 200, 40)) {
+      dificultad = 2;
+    } else if (clickEnBoton(250, 270, 200, 40)) {
+      dificultad = 3;
+    }
+
+    if (dificultad > 0) {
+      juegoIniciado = true;
+      
+    }
+    return;
+  }
+  if (isQuestionActive && currentQuestion) {
+    for (let i = 0; i < currentQuestion.options.length; i++) {
+      let y = height / 2 - 20 + i * 50;
+      if (
+        mouseX > width / 2 - 150 &&
+        mouseX < width / 2 + 150 &&
+        mouseY > y &&
+        mouseY < y + 40
+      ) {
+        // clic sobre una opción
+        if (i === currentQuestion.correct) {
+          
+          isQuestionActive = false;
+          currentQuestion = null;
+          
+
+          //sistema de sumar puntos
+        } else {
+          
+          isQuestionActive = false;
+          currentQuestion = null;
+
+          //sistema de restar puntos
+        }
+      }
+    }
+  }
+}
+
+
+function mostrarBoton(texto, x, y, w, h) {
+  fill(180);
+  rect(x, y, w, h, 10);
+  fill(0);
+  textAlign(CENTER, CENTER);
+  text(texto, x + w / 2, y + h / 2);
+  textAlign(LEFT, BASELINE);
+}
+function clickEnBoton(x, y, w, h) {
+  return mouseX > x && mouseX < x + w && mouseY > y && mouseY < y + h;
+}
 
 // Cargar imágenes
 function preload() {
@@ -149,7 +242,15 @@ function preload() {
   playerSprites.down = loadImage("../src/sprites/player/downwalk1.png");
   playerSprites.left = loadImage("../src/sprites/player/leftwalk1.png");
   playerSprites.right = loadImage("../src/sprites/player/rightwalk1.png");
+  playerSprites.up.atk = loadImage("../src/sprites/player/player_atk_up_2.png");
+  playerSprites.down.atk = loadImage("../src/sprites/player/player_atk_down_2.png");
+  playerSprites.left.atk = loadImage("../src/sprites/player/player_atk_left_2.png");
+  playerSprites.right.atk = loadImage("../src/sprites/player/player_atk_right_2.png");
 
+  
+  enemiesSprites=loadImage("../src/sprites/enemies/crab/enemy_crab_2.png");
+  keySprite = loadImage("../src/sprites/items/key.png");
+  
   heartSprite = loadImage("../src/sprites/ui/heart_full.png");
 
   currentPlayerImg = playerSprites.down;
@@ -217,6 +318,9 @@ function drawGrid() {
 function handlePlayerMovement() {
   if (!inited) return;
 
+  // Si está atacando, no se mueve
+  if (isAttacking) return;
+
   // velocidad máxima proporcional al tileSize
   let maxSpeed = tileSize * 0.08; // ajusta para hacer más/menos rápido
 
@@ -274,6 +378,48 @@ function handlePlayerMovement() {
   let r = tileSize * player.radiusFactor;
   player.x = constrain(player.x, offsetX + r, offsetX + playW - r);
   player.y = constrain(player.y, offsetY + r, offsetY + playH - r);
+
+  // 🔸 Verificar interacción con llaves
+for (let i = 0; i < keys.length; i++) {
+  let k = keys[i];
+  let d = dist(player.x, player.y, k.x, k.y);
+
+  if (d < tileSize * 0.5 && !isQuestionActive) {
+    showQuestion();       // mostrar pregunta
+    keys.splice(i, 1);// eliminar la llave del mapa
+    break;
+  }
+}
+}
+
+
+function showQuestion() {
+  isQuestionActive = true;
+  currentQuestion = random(questions);
+  
+}
+
+function handleAttack() {
+  // Iniciar ataque si se presiona J o Z y no está atacando
+  if ((keyIsDown(74) || keyIsDown(90)) && !isAttacking) { // 74 = J, 90 = Z
+    isAttacking = true;
+    attackStartTime = millis();
+
+    // Cambiar sprite según dirección actual
+    if (currentPlayerImg === playerSprites.up) currentPlayerImg = playerSprites.up_atk;
+    else if (currentPlayerImg === playerSprites.down) currentPlayerImg = playerSprites.down_atk;
+    else if (currentPlayerImg === playerSprites.left) currentPlayerImg = playerSprites.left_atk;
+    else if (currentPlayerImg === playerSprites.right) currentPlayerImg = playerSprites.right_atk;
+  }
+
+  // Terminar ataque después de duración
+  if (isAttacking && millis() - attackStartTime > attackDuration) {
+    isAttacking = false;
+    if (currentPlayerImg === playerSprites.up_atk) currentPlayerImg = playerSprites.up;
+    else if (currentPlayerImg === playerSprites.down_atk) currentPlayerImg = playerSprites.down;
+    else if (currentPlayerImg === playerSprites.left_atk) currentPlayerImg = playerSprites.left;
+    else if (currentPlayerImg === playerSprites.right_atk) currentPlayerImg = playerSprites.right;
+  }
 }
 
 function updateEnemies() {
@@ -451,9 +597,17 @@ function loadLevel(levelArray) {
         player.x = px + tileSize / 2;
         player.y = py + tileSize / 2;
       } else if (val === 3) {
-        enemies.push({ x: px + tileSize / 2, y: py + tileSize / 2 });
+        enemies.push({
+          x: px + tileSize / 2,
+          y: py + tileSize / 2,
+          vx: random([-1, 0, 1]),
+          vy: random([-1, 0, 1]),
+          speed: tileSize * 0.019,
+          dirTimer: millis() + random(1000, 3000),
+          sprite: enemiesSprites
+        });
       } else if (val === 4) {
-        keys.push({ x: px + tileSize / 2, y: py + tileSize / 2 });
+        keys.push({ x: px + tileSize / 2, y: py + tileSize / 2, sprite: keySprite });
       }  else if (val === 5) {
         // puertas: agrupar en pares horizontal/vertical o single
         if (seen[gy][gx]) continue; // ya procesado por su pareja
@@ -480,13 +634,7 @@ function loadLevel(levelArray) {
       }
     }
   }
-  // Inicializa enemigos con velocidad y dirección aleatoria
-for (let e of enemies) {
-  e.vx = random([-1, 0, 1]);
-  e.vy = random([-1, 0, 1]);
-  e.speed = tileSize * 0.019; // velocidad base
-  e.dirTimer = millis() + random(1000, 3000); // cambiar dirección cada cierto tiempo
-}
+  
 }
 
 function drawLevel() {
@@ -536,15 +684,16 @@ function drawLevel() {
   }
 
   // enemigos
-  fill(200, 0, 0);
   for (let e of enemies) {
-    rect(e.x - tileSize*0.3, e.y - tileSize*0.3, tileSize*0.6, tileSize*0.6);
+    imageMode(CENTER);
+    image(e.sprite, e.x, e.y, tileSize * 0.8, tileSize * 0.8);
   }
 
   // llaves
-  fill(255, 255, 0);
+  
   for (let k of keys) {
-    ellipse(k.x, k.y, tileSize*0.4);
+    imageMode(CENTER);
+    image(k.sprite, k.x, k.y, tileSize * 0.8, tileSize * 0.8);
   }
   // asegúrate de tener imageMode(CENTER) antes de esto
 imageMode(CENTER);
@@ -821,6 +970,22 @@ function drawVignette() {
 
 
 function draw() {
+  
+
+  // si todavía no elegiste dificultad
+  if (!juegoIniciado) {
+    background(220);
+    textSize(24);
+    fill(0);
+    text("Selecciona la dificultad:", 200, 100);
+
+    // botones de dificultad
+    mostrarBoton("Fácil (1)", 250, 150, 200, 40);
+    mostrarBoton("Medio (2)", 250, 210, 200, 40);
+    mostrarBoton("Difícil (3)", 250, 270, 200, 40);
+    return;
+  }
+
   background('#2e1708');
 
   noSmooth();
@@ -833,6 +998,7 @@ function draw() {
 
   drawGrid();
 
+  handleAttack();
   handlePlayerMovement();
 
   drawPlayer();
@@ -840,6 +1006,29 @@ function draw() {
   drawLevel();
 
   drawVignette();
+  if (isQuestionActive && currentQuestion) {
+  drawQuestionUI();
+}
+}
+
+function drawQuestionUI() {
+  fill(0, 180);
+  rect(0, 0, width, height); // fondo semitransparente
+
+  fill(255);
+  textAlign(CENTER, CENTER);
+  textSize(22);
+  text(currentQuestion.text, width / 2, height / 2 - 100);
+
+  // Dibujar las 4 opciones
+  textSize(18);
+  for (let i = 0; i < currentQuestion.options.length; i++) {
+    let y = height / 2 - 20 + i * 50;
+    fill(100);
+    rect(width / 2 - 150, y, 300, 40, 10);
+    fill(255);
+    text(currentQuestion.options[i], width / 2, y + 20);
+  }
 }
 
 let exampleLevel = [
@@ -1071,7 +1260,8 @@ const __orig_draw_for_levels = draw;
 draw = function() {
   __orig_draw_for_levels.apply(this, arguments);
   updateEnemies();
-
+  
   checkDoorTransition();
   handleTransition();
 };
+
