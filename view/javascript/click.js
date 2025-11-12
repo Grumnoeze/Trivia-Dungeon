@@ -2,6 +2,10 @@
 // Llave de almacenamiento para el anchoalto del canvas. No tocar.
 const STORAGE_KEY = 'myGameBaseCanvasSize_v1';
 
+let preguntaActual;
+let opciones = [];
+let respuestaCorrecta;
+
 let cnv;
 let baseW, baseH;
 
@@ -62,11 +66,64 @@ let player = {
   vy: 0,
   // velocidad relativa al tileSize — se calcula dinámicamente en draw
   radiusFactor: 0.32,  // radio del jugador en relación al tile
-  dir: "down"
+  dir: "down",
+  hearts: 3,
+  maxHearts: 3,
+  score: 0
 };
 
 let wallTop, wallBottom, wallLeft, wallRight;
 let wallCorner1, wallCorner2, wallCorner3, wallCorner4;
+
+/*
+function obtenerPregunta() {
+  fetch("http://localhost/Trivia-Dungeon/model/obtener_preguntas.php?dificultad=" + dificultad)
+    .then(res => res.json())
+    .then(data => {
+      console.log("Respuesta del servidor:", data); // <-- debug
+      if (data.error) {
+        preguntaActual = data.error;
+        opciones = [];
+        return;
+      }
+      preguntaActual = data.pregunta;
+      respuestaCorrecta = data.correcta;
+      opciones = [data.correcta, data.falsa1, data.falsa2, data.falsa3];
+      opciones = shuffle(opciones);
+      mensaje = "";
+    });
+}*/
+
+function drawUI() {
+  let barHeight = height * 0.1;
+  let heartSize = barHeight * 0.4;
+  let margin = 5; // 🔹 Texto estilo Zelda (arriba de los corazones) 
+  textFont(pixelFont); 
+  textAlign(LEFT, TOP); 
+  textSize(barHeight * 0.35); fill(255, 80, 0); 
+  let textX = 20; // margen izquierdo 
+  let textY = barHeight * 0.15; // un poco desde arriba 
+  text("-HEALTH-", textX, textY); // 🔹 Dibujar corazones (debajo del texto) 
+  for (let i = 0; i < player.maxHearts; i++) { 
+    let x = 41 + i * (heartSize + margin); // en fila, alineados con el texto 
+    let y = textY + barHeight * 0.7; // debajo del texto 
+    if (i < player.hearts) { 
+      image(heartSprite, x, y, heartSize, heartSize);
+     } else { 
+      tint(255, 100);
+      image(heartSprite, x, y, heartSize, heartSize); 
+      noTint(); 
+    } 
+  } 
+  // 🔹 Mostrar puntaje (arriba a la derecha)
+  textAlign(RIGHT, TOP);
+  textSize(barHeight * 0.4);
+  fill(255, 255, 0); // Amarillo dorado para destacar el puntaje
+  let scoreText = "SCORE: " + player.score;
+  let scoreX = width - 20; // margen derecho
+  let scoreY = barHeight * 0.15;
+  text(scoreText, scoreX, scoreY);
+}
 
 function mousePressed() {
   if (!juegoIniciado) {
@@ -81,10 +138,21 @@ function mousePressed() {
 
     if (dificultad > 0) {
       juegoIniciado = true;
-
     }
     return;
   }
+  
+  /*
+  // clic en opciones de respuesta
+  if (preguntaActual) {
+    for (let i = 0; i < opciones.length; i++) {
+      let x = 50, y = 100 + i * 60, w = 600, h = 40;
+      if (mouseX > x && mouseX < x + w && mouseY > y && mouseY < y + h) {
+        verificarRespuesta(opciones[i]);
+      }
+    }
+  }*/
+
   if (isQuestionActive && currentQuestion) {
     for (let i = 0; i < currentQuestion.options.length; i++) {
       let y = height / 2 - 20 + i * 50;
@@ -96,23 +164,31 @@ function mousePressed() {
       ) {
         // clic sobre una opción
         if (i === currentQuestion.correct) {
-
           isQuestionActive = false;
           currentQuestion = null;
-
-
+          player.score += 10;
           //sistema de sumar puntos
         } else {
-
           isQuestionActive = false;
           currentQuestion = null;
-
+          player.score -= 5;
           //sistema de restar puntos
         }
       }
     }
   }
 }
+
+/*
+function verificarRespuesta(respuesta) {
+  if (respuesta === respuestaCorrecta) {
+    puntaje += 50;
+    mensaje = "✅ Correcto";
+  } else {
+    mensaje = "❌ Incorrecto";
+  }
+  setTimeout(obtenerPregunta, 1500);
+}*/
 
 function mostrarBoton(texto, x, y, w, h) {
   fill(180);
@@ -127,14 +203,8 @@ function clickEnBoton(x, y, w, h) {
 }
 
 // =======================
-// NO TOCAR
-// =======================
 // Todo lo que está arriba es del jugador.
 // =======================
-// AQUÍ EN ADELANTE PUEDES TOCAR
-// =======================
-
-
 // -----------------
 // CONFIGURACIÓN DEL JUEGO
 // -----------------
@@ -176,6 +246,8 @@ function preload() {
   playerSprites.atkd = loadImage("../src/sprites/player/player_atk_down_2.png");
   playerSprites.atkl = loadImage("../src/sprites/player/player_atk_left_2.png");
   playerSprites.atkr = loadImage("../src/sprites/player/player_atk_right_2.png");
+
+  heartSprite = loadImage("../src/sprites/ui/heart_full.png");
 
 
   enemiesSprites = loadImage("../src/sprites/enemies/crab/enemy_crab_2.png");
@@ -966,6 +1038,7 @@ function draw() {
     return;
   }
 
+
   background('#2e1708');
 
   noSmooth();
@@ -984,6 +1057,7 @@ function draw() {
   drawPlayer();
 
   drawLevel();
+  drawUI()
 
   drawVignette();
   if (isQuestionActive && currentQuestion) {
