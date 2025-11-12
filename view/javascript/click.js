@@ -1,4 +1,3 @@
-
 // Llave de almacenamiento para el anchoalto del canvas. No tocar.
 const STORAGE_KEY = 'myGameBaseCanvasSize_v1';
 
@@ -35,23 +34,23 @@ let dificultad = 0;
 let isQuestionActive = false;
 let currentQuestion = null;
 
-let questions = [
-  {
-    text: "¿Cuál es la capital de Francia?",
-    options: ["Madrid", "Roma", "París", "Londres"],
-    correct: 2
-  },
-  {
-    text: "¿Cuánto es 5 × 6?",
-    options: ["11", "30", "25", "20"],
-    correct: 1
-  },
-  {
-    text: "¿Cuál de estos animales puede volar?",
-    options: ["Perro", "Gato", "Murciélago", "Pez"],
-    correct: 2
-  }
-];
+// let questions = [
+//   {
+//     text: "¿Cuál es la capital de Francia?",
+//     options: ["Madrid", "Roma", "París", "Londres"],
+//     correct: 2
+//   },
+//   {
+//     text: "¿Cuánto es 5 × 6?",
+//     options: ["11", "30", "25", "20"],
+//     correct: 1
+//   },
+//   {
+//     text: "¿Cuál de estos animales puede volar?",
+//     options: ["Perro", "Gato", "Murciélago", "Pez"],
+//     correct: 2
+//   }
+// ];
 
 let usedKeys = []; // IDs o posiciones de llaves ya usadas
 
@@ -75,7 +74,15 @@ let player = {
 let wallTop, wallBottom, wallLeft, wallRight;
 let wallCorner1, wallCorner2, wallCorner3, wallCorner4;
 
-/*
+function shuffle(array) {
+  for (let i = array.length - 1; i > 0; i--) {
+    let j = floor(random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+  return array;
+}
+
+
 function obtenerPregunta() {
   fetch("http://localhost/Trivia-Dungeon/model/obtener_preguntas.php?dificultad=" + dificultad)
     .then(res => res.json())
@@ -92,7 +99,7 @@ function obtenerPregunta() {
       opciones = shuffle(opciones);
       mensaje = "";
     });
-}*/
+}
 
 function drawUI() {
   let barHeight = height * 0.1;
@@ -142,19 +149,9 @@ function mousePressed() {
     return;
   }
   
-  /*
-  // clic en opciones de respuesta
-  if (preguntaActual) {
+  
+ if (isQuestionActive && preguntaActual && opciones.length > 0) {
     for (let i = 0; i < opciones.length; i++) {
-      let x = 50, y = 100 + i * 60, w = 600, h = 40;
-      if (mouseX > x && mouseX < x + w && mouseY > y && mouseY < y + h) {
-        verificarRespuesta(opciones[i]);
-      }
-    }
-  }*/
-
-  if (isQuestionActive && currentQuestion) {
-    for (let i = 0; i < currentQuestion.options.length; i++) {
       let y = height / 2 - 20 + i * 50;
       if (
         mouseX > width / 2 - 150 &&
@@ -162,33 +159,30 @@ function mousePressed() {
         mouseY > y &&
         mouseY < y + 40
       ) {
-        // clic sobre una opción
-        if (i === currentQuestion.correct) {
-          isQuestionActive = false;
-          currentQuestion = null;
-          player.score += 10;
-          //sistema de sumar puntos
-        } else {
-          isQuestionActive = false;
-          currentQuestion = null;
-          player.score -= 5;
-          //sistema de restar puntos
-        }
+        verificarRespuesta(opciones[i]);
       }
     }
   }
 }
 
-/*
+
 function verificarRespuesta(respuesta) {
   if (respuesta === respuestaCorrecta) {
-    puntaje += 50;
+    player.score += 50;
     mensaje = "✅ Correcto";
+  
   } else {
+    player.hearts -= 1;
     mensaje = "❌ Incorrecto";
   }
-  setTimeout(obtenerPregunta, 1500);
-}*/
+  setTimeout(() => {
+    mensaje = "";
+    isQuestionActive = false; // 👈 Oculta la pregunta
+    preguntaActual = null;    // Limpia la pregunta actual
+    opciones = [];            // Limpia las opciones
+  }, 1500);
+}
+
 
 function mostrarBoton(texto, x, y, w, h) {
   fill(180);
@@ -397,7 +391,7 @@ function handlePlayerMovement() {
 
 function showQuestion() {
   isQuestionActive = true;
-  currentQuestion = random(questions);
+  obtenerPregunta();
 
 }
 
@@ -1060,28 +1054,41 @@ function draw() {
   drawUI()
 
   drawVignette();
-  if (isQuestionActive && currentQuestion) {
+  if (isQuestionActive && preguntaActual) {
     drawQuestionUI();
   }
 }
 
-function drawQuestionUI() {
-  fill(0, 180);
-  rect(0, 0, width, height); // fondo semitransparente
 
+  function drawQuestionUI() {
+  if (!preguntaActual || opciones.length === 0) return;
+
+  // Fondo semitransparente
+  fill(0, 0, 0, 180);
+  rect(0, 0, width, height);
+
+  // Texto de la pregunta
   fill(255);
-  textAlign(CENTER, CENTER);
-  textSize(22);
-  text(currentQuestion.text, width / 2, height / 2 - 100);
+  textAlign(CENTER, TOP);
+  textSize(20);
+  text(preguntaActual, width / 2, height / 2 - 120);
 
-  // Dibujar las 4 opciones
+  // Dibujar opciones
   textSize(18);
-  for (let i = 0; i < currentQuestion.options.length; i++) {
+  for (let i = 0; i < opciones.length; i++) {
     let y = height / 2 - 20 + i * 50;
-    fill(100);
+    fill(200);
     rect(width / 2 - 150, y, 300, 40, 10);
+    fill(0);
+    textAlign(CENTER, CENTER);
+    text(opciones[i], width / 2, y + 20);
+  }
+
+  // Mostrar mensaje de resultado
+  if (mensaje !== "") {
     fill(255);
-    text(currentQuestion.options[i], width / 2, y + 20);
+    textSize(22);
+    text(mensaje, width / 2, height / 2 + 200);
   }
 }
 
