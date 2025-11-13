@@ -97,24 +97,68 @@ let lastHoverIndex = -1; // índice de la opción sobre la que estaba antes
 let musicaJuego;
 let musicaPregunta;
 let musicaActual = null;
+let gameOver = false;
+
+function keyPressed() {
+  if (gameOver && key === 'r' || key === 'R') {
+    location.reload();
+  }
+}
+
+function seleccionarDificultad(nivel) {
+  dificultad = nivel;
+  juegoIniciado = true;
+}
+function sumarPuntos() {
+  if (dificultad === 1) {
+    player.score += 10;
+  } else if (dificultad === 2) {
+    player.score += 50;
+  } else if (dificultad === 3) {
+    player.score += 100;
+  }
+}
+
+function actualizarScore(score) {
+  fetch("http://localhost/Trivia-Dungeon/model/actualizarScore", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded"
+    },
+    body: "score=" + encodeURIComponent(score)
+  })
+  .then(response => response.text())
+  .then(data => {
+    if (data.trim() === "updated") {
+      console.log("✅ Score actualizado con éxito");
+    } else if (data.trim() === "no_update") {
+      console.log("ℹ️ El score no superó el actual, no se actualizó");
+    } else if (data.trim() === "no_session") {
+      console.warn("⚠️ No hay sesión iniciada");
+    } else {
+      console.error("❌ Error al actualizar:", data);
+    }
+  })
+  .catch(err => console.error("Error de conexión:", err));
+}
+
+
 
 function mousePressed() {
   if (!juegoIniciado) {
     // elegir dificultad
     if (clickEnBoton(250, 150, 200, 40)) {
       clickSound.play();
-      dificultad = 1;
+      seleccionarDificultad(1)
     } else if (clickEnBoton(250, 210, 200, 40)) {
       clickSound.play();
-      dificultad = 2;
+      seleccionarDificultad(2)
     } else if (clickEnBoton(250, 270, 200, 40)) {
       clickSound.play();
-      dificultad = 3;
+      seleccionarDificultad(3)
     }
 
-    if (dificultad > 0) {
-      juegoIniciado = true;
-    }
+    
     return;
   }
   if (isQuestionActive && preguntaActual && opciones.length) {
@@ -255,7 +299,7 @@ function drawUI() {
 
 function verificarRespuesta(respuesta) {
   if (respuesta === respuestaCorrecta) {
-    player.score += 50;
+    sumarPuntos();
     mensaje = "✅ Correcto";
   
   } else {
@@ -277,7 +321,7 @@ function cerrarCuestionario() {
 
 function verificarRespuestaSinCerrar(respuesta) {
   if (respuesta === respuestaCorrecta) {
-    player.score += 50;
+    sumarPuntos();
     mensaje = "✅ Correcto";
   } else {
     player.hearts -= 1;
@@ -1182,6 +1226,25 @@ function drawVignette() {
 
 
 function draw() {
+  if (gameOver) {
+    background(0, 0, 0, 200);
+    textAlign(CENTER, CENTER);
+    textSize(40);
+    fill(255, 0, 0);
+    text("GAME OVER", width / 2, height / 2 - 40);
+    textSize(20);
+    fill(255);
+    text("Presiona R para reiniciar", width / 2, height / 2 + 20);
+    manejarMusica("gameover");
+    noLoop(); // 🔹 Detiene draw() para congelar el juego
+    return;
+  }
+  if (player.hearts <= 0) {
+    player.hearts = 0;
+    gameOver = true;
+    // 🔹 Subir score a la base de datos si es mayor
+    actualizarScore(player.score);
+  }
 
 
   // si todavía no elegiste dificultad

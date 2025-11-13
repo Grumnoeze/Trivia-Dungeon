@@ -19,7 +19,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         if (password_verify($password, $usuario['password'])) {
             $_SESSION['user_id'] = $usuario['email'];
             $_SESSION['username'] = $usuario['username'];
-            header("Location: ../../index.php");
+            header("Location: game.php");
             exit();
         } else {
             echo "<script>alert('Contraseña incorrecta.'); window.location.href='login.php';</script>";
