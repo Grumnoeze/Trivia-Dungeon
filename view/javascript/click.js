@@ -1,9 +1,16 @@
+
 // Llave de almacenamiento para el anchoalto del canvas. No tocar.
 const STORAGE_KEY = 'myGameBaseCanvasSize_v1';
 
-let preguntaActual;
-let opciones = [];
-let respuestaCorrecta;
+let clickedOptionIndex = -1;
+let clickTime = 0;
+
+let lastStepTime = 0;
+let stepFrame = 1;
+
+let answerState = null; // "correct", "incorrect" o null
+
+let correctSound, correctSong, incorrectSound, incorrectSong;
 
 let cnv;
 let baseW, baseH;
@@ -52,11 +59,18 @@ let currentQuestion = null;
 //   }
 // ];
 
+let preguntaActual;
+let opciones = [];
+let respuestaCorrecta;
+
 let usedKeys = []; // IDs o posiciones de llaves ya usadas
+let keyPickupSound;
+
+let questionFont;
 
 let isAttacking = false;
 let attackStartTime = 0;
-let attackDuration = 300;
+let attackDuration = 250;
 
 let player = {
   x: 0,
@@ -74,6 +88,112 @@ let player = {
 let wallTop, wallBottom, wallLeft, wallRight;
 let wallCorner1, wallCorner2, wallCorner3, wallCorner4;
 
+let attackSounds = [];
+let clickSound;
+let hoverSound;
+let transitionSound;
+let lastHoverIndex = -1; // índice de la opción sobre la que estaba antes
+
+let musicaJuego;
+let musicaPregunta;
+let musicaActual = null;
+
+function mousePressed() {
+  if (!juegoIniciado) {
+    // elegir dificultad
+    if (clickEnBoton(250, 150, 200, 40)) {
+      clickSound.play();
+      dificultad = 1;
+    } else if (clickEnBoton(250, 210, 200, 40)) {
+      clickSound.play();
+      dificultad = 2;
+    } else if (clickEnBoton(250, 270, 200, 40)) {
+      clickSound.play();
+      dificultad = 3;
+    }
+
+    if (dificultad > 0) {
+      juegoIniciado = true;
+    }
+    return;
+  }
+  if (isQuestionActive && preguntaActual && opciones.length) {
+    for (let i = 0; i < opciones.length; i++) {
+      let y = height / 2 - 20 + i * 50;
+      if (
+        mouseX > width / 2 - 150 &&
+        mouseX < width / 2 + 150 &&
+        mouseY > y &&
+        mouseY < y + 40 &&
+        clickedOptionIndex === -1
+      ) {
+        clickedOptionIndex = i;
+        clickTime = millis();
+        
+        clickSound.play();
+
+        setTimeout(() => {
+          let respuestaSeleccionada = opciones[i];
+          verificarRespuesta(respuestaSeleccionada);
+
+          if (respuestaSeleccionada === respuestaCorrecta){
+            answerState = "correct";
+            correctSound.play();
+          } else {
+            answerState = "incorrect";
+            incorrectSound.play();
+          }
+
+          setTimeout(() => {
+            detenerTodas();
+
+            if (answerState === "correct"){
+              correctSong.play();
+              correctSong.setLoop(false);
+            } else {
+              incorrectSong.play();
+              incorrectSong.setLoop(false);
+            }
+
+            setTimeout(() =>{
+              if (answerState === "correct"){
+                correctSong.stop();
+              } else {
+                incorrectSong.stop();
+              }
+
+              cerrarCuestionario();
+              clickedOptionIndex = -1;
+              answerState = null;
+            }, 5000);
+          }, 1000);
+        }, 1000);
+      }
+    }
+  }
+}
+
+function manejarMusica(modo){
+  if (modo === "pregunta"){
+    if (musicaActual !== musicaPregunta){
+      detenerTodas();
+      musicaPregunta.loop();
+      musicaActual = musicaPregunta;
+    }
+  } else if (modo === "juego"){
+    if (musicaActual !== musicaJuego){
+      detenerTodas();
+      musicaJuego.loop();
+      musicaActual = musicaJuego;
+    }
+  }
+}
+
+function detenerTodas() {
+  if (musicaJuego.isPlaying()) musicaJuego.stop();
+  if (musicaPregunta.isPlaying()) musicaPregunta.stop();
+}
+
 function shuffle(array) {
   for (let i = array.length - 1; i > 0; i--) {
     let j = floor(random() * (i + 1));
@@ -81,7 +201,6 @@ function shuffle(array) {
   }
   return array;
 }
-
 
 function obtenerPregunta() {
   fetch("http://localhost/Trivia-Dungeon/model/obtener_preguntas.php?dificultad=" + dificultad)
@@ -102,27 +221,29 @@ function obtenerPregunta() {
 }
 
 function drawUI() {
+  noStroke(); fill(0);
+  rect(0, 0, width, height * 0.13); // 🔹 Ajustamos tamaño de corazones al alto de la barra
   let barHeight = height * 0.1;
   let heartSize = barHeight * 0.4;
-  let margin = 5; // 🔹 Texto estilo Zelda (arriba de los corazones) 
-  textFont(pixelFont); 
-  textAlign(LEFT, TOP); 
-  textSize(barHeight * 0.35); fill(255, 80, 0); 
-  let textX = 20; // margen izquierdo 
-  let textY = barHeight * 0.15; // un poco desde arriba 
-  text("-HEALTH-", textX, textY); // 🔹 Dibujar corazones (debajo del texto) 
-  for (let i = 0; i < player.maxHearts; i++) { 
-    let x = 41 + i * (heartSize + margin); // en fila, alineados con el texto 
-    let y = textY + barHeight * 0.7; // debajo del texto 
-    if (i < player.hearts) { 
+  let margin = 5; // 🔹 Texto estilo Zelda (arriba de los corazones)
+  textFont(pixelFont);
+  textAlign(LEFT, TOP);
+  textSize(barHeight * 0.35);
+  fill(255, 80, 0);
+  let textX = 20; // margen izquierdo
+  let textY = barHeight * 0.15; // un poco desde arriba
+  text("-HEALTH-", textX, textY); // 🔹 Dibujar corazones (debajo del texto)
+  for (let i = 0; i < player.maxHearts; i++) {
+    let x = 41 + i * (heartSize + margin); // en fila, alineados con el texto
+    let y = textY + barHeight * 0.7; // debajo del texto
+    if (i < player.hearts) {
       image(heartSprite, x, y, heartSize, heartSize);
-     } else { 
+    } else {
       tint(255, 100);
-      image(heartSprite, x, y, heartSize, heartSize); 
-      noTint(); 
-    } 
-  } 
-  // 🔹 Mostrar puntaje (arriba a la derecha)
+      image(heartSprite, x, y, heartSize, heartSize);
+      noTint();
+    }
+  }
   textAlign(RIGHT, TOP);
   textSize(barHeight * 0.4);
   fill(255, 255, 0); // Amarillo dorado para destacar el puntaje
@@ -131,40 +252,6 @@ function drawUI() {
   let scoreY = barHeight * 0.15;
   text(scoreText, scoreX, scoreY);
 }
-
-function mousePressed() {
-  if (!juegoIniciado) {
-    // elegir dificultad
-    if (clickEnBoton(250, 150, 200, 40)) {
-      dificultad = 1;
-    } else if (clickEnBoton(250, 210, 200, 40)) {
-      dificultad = 2;
-    } else if (clickEnBoton(250, 270, 200, 40)) {
-      dificultad = 3;
-    }
-
-    if (dificultad > 0) {
-      juegoIniciado = true;
-    }
-    return;
-  }
-  
-  
- if (isQuestionActive && preguntaActual && opciones.length > 0) {
-    for (let i = 0; i < opciones.length; i++) {
-      let y = height / 2 - 20 + i * 50;
-      if (
-        mouseX > width / 2 - 150 &&
-        mouseX < width / 2 + 150 &&
-        mouseY > y &&
-        mouseY < y + 40
-      ) {
-        verificarRespuesta(opciones[i]);
-      }
-    }
-  }
-}
-
 
 function verificarRespuesta(respuesta) {
   if (respuesta === respuestaCorrecta) {
@@ -175,14 +262,28 @@ function verificarRespuesta(respuesta) {
     player.hearts -= 1;
     mensaje = "❌ Incorrecto";
   }
-  setTimeout(() => {
-    mensaje = "";
-    isQuestionActive = false; // 👈 Oculta la pregunta
-    preguntaActual = null;    // Limpia la pregunta actual
-    opciones = [];            // Limpia las opciones
-  }, 1500);
 }
 
+function cerrarCuestionario() {
+  detenerTodas();
+  isQuestionActive = false;
+  preguntaActual = null;
+  opciones = [];
+  clickedOptionIndex = -1;
+  answerState = null;
+  mensaje = "";
+}
+
+
+function verificarRespuestaSinCerrar(respuesta) {
+  if (respuesta === respuestaCorrecta) {
+    player.score += 50;
+    mensaje = "✅ Correcto";
+  } else {
+    player.hearts -= 1;
+    mensaje = "❌ Incorrecto";
+  }
+}
 
 function mostrarBoton(texto, x, y, w, h) {
   fill(180);
@@ -197,8 +298,14 @@ function clickEnBoton(x, y, w, h) {
 }
 
 // =======================
+// NO TOCAR
+// =======================
 // Todo lo que está arriba es del jugador.
 // =======================
+// AQUÍ EN ADELANTE PUEDES TOCAR
+// =======================
+
+
 // -----------------
 // CONFIGURACIÓN DEL JUEGO
 // -----------------
@@ -232,26 +339,55 @@ function preload() {
   dungeon_door_half1 = loadImage("../src/sprites/tiles/dungeon/dungeon_door_half1.png");
   dungeon_door_half2 = loadImage("../src/sprites/tiles/dungeon/dungeon_door_half2.png");
 
-  playerSprites.up = loadImage("../src/sprites/player/upwalk1.png");
-  playerSprites.down = loadImage("../src/sprites/player/downwalk1.png");
-  playerSprites.left = loadImage("../src/sprites/player/leftwalk1.png");
-  playerSprites.right = loadImage("../src/sprites/player/rightwalk1.png");
-  playerSprites.atku = loadImage("../src/sprites/player/player_atk_up_2.png");
-  playerSprites.atkd = loadImage("../src/sprites/player/player_atk_down_2.png");
-  playerSprites.atkl = loadImage("../src/sprites/player/player_atk_left_2.png");
-  playerSprites.atkr = loadImage("../src/sprites/player/player_atk_right_2.png");
 
-  heartSprite = loadImage("../src/sprites/ui/heart_full.png");
+  playerSprites = {
+    up1: loadImage("../src/sprites/player/player_walk_up_1.png"),
+    up2: loadImage("../src/sprites/player/player_walk_up_2.png"),
+    down1: loadImage("../src/sprites/player/player_walk_down_1.png"),
+    down2: loadImage("../src/sprites/player/player_walk_down_2.png"),
+    left1: loadImage("../src/sprites/player/player_walk_left_1.png"),
+    left2: loadImage("../src/sprites/player/player_walk_left_2.png"),
+    right1: loadImage("../src/sprites/player/player_walk_right_1.png"),
+    right2: loadImage("../src/sprites/player/player_walk_right_2.png"),
 
+    atku1: loadImage("../src/sprites/player/player_atk_up_1.png"),
+    atku2: loadImage("../src/sprites/player/player_atk_up_2.png"),
+    atku3: loadImage("../src/sprites/player/player_atk_up_3.png"),
+    atkd1: loadImage("../src/sprites/player/player_atk_down_1.png"),
+    atkd2: loadImage("../src/sprites/player/player_atk_down_2.png"),
+    atkd3: loadImage("../src/sprites/player/player_atk_down_3.png"),
+    atkl1: loadImage("../src/sprites/player/player_atk_left_1.png"),
+    atkl2: loadImage("../src/sprites/player/player_atk_left_2.png"),
+    atkl3: loadImage("../src/sprites/player/player_atk_left_3.png"),
+    atkr1: loadImage("../src/sprites/player/player_atk_right_1.png"),
+    atkr2: loadImage("../src/sprites/player/player_atk_right_2.png"),
+    atkr3: loadImage("../src/sprites/player/player_atk_right_3.png")
+  }
 
   enemiesSprites = loadImage("../src/sprites/enemies/crab/enemy_crab_2.png");
   keySprite = loadImage("../src/sprites/items/key.png");
 
   heartSprite = loadImage("../src/sprites/ui/heart_full.png");
 
-  currentPlayerImg = playerSprites.down;
+  currentPlayerImg = playerSprites.down1;
 
   pixelFont = loadFont("../src/fonts/ari-w9500.ttf");
+  questionFont = loadFont("../src/fonts/PressStart2P.ttf");
+
+  attackSounds[0] = loadSound("../src/sounds/snd_board_sword1.wav");
+  attackSounds[1] = loadSound("../src/sounds/snd_board_sword2.wav");
+  attackSounds[2] = loadSound("../src/sounds/snd_board_sword3.wav");
+  transitionSound = loadSound("../src/sounds/snd_trans.wav");
+  keyPickupSound = loadSound("../src/sounds/snd_cuest_inicio.wav");
+  clickSound = loadSound("../src/sounds/snd_resp_selec.wav");
+  hoverSound = loadSound("../src/sounds/snd_resp_mov.wav");
+  correctSound = loadSound("../src/sounds/snd_resp_correcta.wav")
+  incorrectSound = loadSound("../src/sounds/snd_resp_incorrecta.wav")
+
+  musicaJuego = loadSound("../src/music/board_sword_music.ogg");
+  musicaPregunta = loadSound("../src/music/TV_GAME.ogg");
+  correctSong = loadSound("../src/music/baci_perugina.ogg");
+  incorrectSong = loadSound("../src/music/tv_results_screen.ogg")
 }
 
 
@@ -381,8 +517,11 @@ function handlePlayerMovement() {
     let d = dist(player.x, player.y, k.x, k.y);
 
     if (d < tileSize * 0.5 && !isQuestionActive) {
-      showQuestion();       // mostrar pregunta
+      if (!keyPickupSound.isPlaying()) keyPickupSound.play();
       keys.splice(i, 1);// eliminar la llave del mapa
+      setTimeout(() => {
+        showQuestion();       // mostrar pregunta
+      }, 1000);
       break;
     }
   }
@@ -392,7 +531,19 @@ function handlePlayerMovement() {
 function showQuestion() {
   isQuestionActive = true;
   obtenerPregunta();
+}
 
+function reproducirSonidoAtaque() {
+  // Elegir un índice aleatorio entre 0 y 2
+  let randomIndex = floor(random(attackSounds.length));
+
+  // Detener todos los sonidos anteriores para evitar superposición
+  for (let s of attackSounds) {
+    if (s.isPlaying()) s.stop();
+  }
+
+  // Reproducir el sonido elegido
+  attackSounds[randomIndex].play();
 }
 
 function handleAttack() {
@@ -400,35 +551,45 @@ function handleAttack() {
   if ((keyIsDown(74) || keyIsDown(90)) && !isAttacking) { // 74 = J, 90 = Z
     isAttacking = true;
     attackStartTime = millis();
+    reproducirSonidoAtaque();
 
     // Guardamos la dirección actual del jugador
-    if (currentPlayerImg === playerSprites.up) {
-      currentPlayerImg = playerSprites.atku;
-      player.dir = "up";
-    }
-    else if (currentPlayerImg === playerSprites.down) {
-      currentPlayerImg = playerSprites.atkd;
-      player.dir = "down";
-    }
-    else if (currentPlayerImg === playerSprites.left) {
-      currentPlayerImg = playerSprites.atkl;
-      player.dir = "left";
-    }
-    else if (currentPlayerImg === playerSprites.right) {
-      currentPlayerImg = playerSprites.atkr;
-      player.dir = "right";
-    }
+    if (currentPlayerImg === playerSprites.up1 || currentPlayerImg === playerSprites.up2) player.dir = "up";
+    else if (currentPlayerImg === playerSprites.down1 || currentPlayerImg === playerSprites.down2) player.dir = "down";
+    else if (currentPlayerImg === playerSprites.left1 || currentPlayerImg === playerSprites.left2) player.dir = "left";
+    else if (currentPlayerImg === playerSprites.right1 || currentPlayerImg === playerSprites.right2) player.dir = "right";
   }
 
-  // Terminar ataque después de duración
-  if (isAttacking && millis() - attackStartTime > attackDuration) {
-    isAttacking = false;
-    if (player.dir === "up") currentPlayerImg = playerSprites.up;
-    else if (player.dir === "down") currentPlayerImg = playerSprites.down;
-    else if (player.dir === "left") currentPlayerImg = playerSprites.left;
-    else if (player.dir === "right") currentPlayerImg = playerSprites.right;
+  // Si está atacando, manejar animación de ataque
+  if (isAttacking) {
+    const elapsed = millis() - attackStartTime;
+    const frameTime = attackDuration / 5; // Divide la duración del ataque en 5 partes
+
+    // Secuencia: 1 → 3 → 2 → 3 → 1
+    let frame;
+    if (elapsed < frameTime) frame = 1;
+    else if (elapsed < frameTime * 2) frame = 3;
+    else if (elapsed < frameTime * 3) frame = 2;
+    else if (elapsed < frameTime * 4) frame = 3;
+    else frame = 1;
+
+    // Mostrar sprite según dirección y frame
+    if (player.dir === "up") currentPlayerImg = playerSprites[`atku${frame}`];
+    else if (player.dir === "down") currentPlayerImg = playerSprites[`atkd${frame}`];
+    else if (player.dir === "left") currentPlayerImg = playerSprites[`atkl${frame}`];
+    else if (player.dir === "right") currentPlayerImg = playerSprites[`atkr${frame}`];
+
+    // Terminar ataque
+    if (elapsed > attackDuration) {
+      isAttacking = false;
+      if (player.dir === "up") currentPlayerImg = playerSprites.up1;
+      else if (player.dir === "down") currentPlayerImg = playerSprites.down1;
+      else if (player.dir === "left") currentPlayerImg = playerSprites.left1;
+      else if (player.dir === "right") currentPlayerImg = playerSprites.right1;
+    }
   }
 }
+
 
 function updateEnemies() {
   for (let e of enemies) {
@@ -472,22 +633,27 @@ function drawPlayer() {
 
   // Determinar dirección (basado en velocidad)
   if (!isAttacking && (player.vx !== 0 || player.vy !== 0)) {
+    if (millis() - lastStepTime > 200){
+      stepFrame = stepFrame === 1 ? 2 : 1;
+      lastStepTime = millis();
+    }
+
     if (Math.abs(player.vx) > Math.abs(player.vy)) {
       // Movimiento horizontal domina
       if (player.vx > 0) {
-        currentPlayerImg = playerSprites.right;
+        currentPlayerImg = playerSprites[`right${stepFrame}`];
         player.dir = "right";
       } else {
-        currentPlayerImg = playerSprites.left;
+        currentPlayerImg = playerSprites[`left${stepFrame}`];
         player.dir = "left";
       }
     } else {
       // Movimiento vertical domina
       if (player.vy > 0) {
-        currentPlayerImg = playerSprites.down;
+        currentPlayerImg = playerSprites[`down${stepFrame}`];
         player.dir = "down";
       } else {
-        currentPlayerImg = playerSprites.up;
+        currentPlayerImg = playerSprites[`up${stepFrame}`];
         player.dir = "up";
       }
     }
@@ -1032,7 +1198,6 @@ function draw() {
     return;
   }
 
-
   background('#2e1708');
 
   noSmooth();
@@ -1051,45 +1216,127 @@ function draw() {
   drawPlayer();
 
   drawLevel();
-  drawUI()
+  drawUI();
 
-  drawVignette();
   if (isQuestionActive && preguntaActual) {
     drawQuestionUI();
+    manejarMusica("pregunta");
+  } else {
+    manejarMusica("juego");
   }
+  drawVignette();
 }
 
-
-  function drawQuestionUI() {
+function drawQuestionUI() {
   if (!preguntaActual || opciones.length === 0) return;
 
-  // Fondo semitransparente
-  fill(0, 0, 0, 180);
-  rect(0, 0, width, height);
+  fill('#00bbff');
+  rect(0, 0, width, height); // fondo semitransparente
 
-  // Texto de la pregunta
   fill(255);
-  textAlign(CENTER, TOP);
+  textAlign(CENTER, CENTER);
   textSize(20);
-  text(preguntaActual, width / 2, height / 2 - 120);
+  textFont(questionFont)
+  
+  const question = preguntaActual;
+  const maxTextWidth = width * 0.7; // ancho máximo antes de hacer salto de línea
+  const lineHeight = 28;
+  
+  // Romper texto largo en varias líneas
+  let words = question.split(' ');
+  let lines = [];
+  let currentLine = '';
+  for (let w of words) {
+    let testLine = currentLine + w + ' ';
+    if (textWidth(testLine) > maxTextWidth) {
+      lines.push(currentLine.trim());
+      currentLine = w + ' ';
+    } else {
+      currentLine = testLine;
+    }
+  }
+  lines.push(currentLine.trim());
 
-  // Dibujar opciones
+  // Calcular dimensiones de la caja
+  let boxW = maxTextWidth + 60;
+  let boxH = lines.length * lineHeight + 40;
+  let boxX = width / 2 - boxW / 2;
+  let boxY = height / 2 - boxH / 2 - 150;
+
+  // --- Dibujar bordes (doble borde tipo retro) ---
+
+  fill('#00bbff'); // fondo interno
+  rect(boxX, boxY, boxW, boxH, 5);
+
+  // --- Mostrar texto centrado en líneas ---
+  fill(255);
+  for (let i = 0; i < lines.length; i++) {
+    text(lines[i], width / 2, boxY + 30 + i * lineHeight);
+  }
+
+  // Dibujar las 4 opciones
   textSize(18);
+  textAlign(LEFT, CENTER);
+  let hoverNow = -1;
   for (let i = 0; i < opciones.length; i++) {
     let y = height / 2 - 20 + i * 50;
-    fill(200);
-    rect(width / 2 - 150, y, 300, 40, 10);
-    fill(0);
-    textAlign(CENTER, CENTER);
-    text(opciones[i], width / 2, y + 20);
+    let x = width / 2 - 150;
+    let w = 300;
+    let h = 40;
+
+    // detectar si el mouse está sobre esta opción
+    let isHover =
+      mouseX > x && mouseX < x + w &&
+      mouseY > y && mouseY < y + h;
+
+    if (isHover) hoverNow = i;
+
+    // dibujar texto
+    fill(255);
+    text(opciones[i], x + 10, y + h / 2);
+
+    // ❤️ si el mouse está encima
+    if (clickedOptionIndex === i) {
+
+      let elapsed = millis() - clickTime;
+      let blink = floor(elapsed / 500) % 2 === 0; // 👈 alterna cada 0.5s
+
+        if (answerState === "correct"){
+          if (elapsed < 1000){
+          fill(255, 0, 0);
+          text("♥", x - 25, y + h / 2 + 1);
+        } else {
+          if (blink) {
+            fill(0, 255, 0);
+            text("O", x - 25, y + h / 2 + 1);
+          }
+        }
+      } else if (answerState === "incorrect") {
+        if (elapsed < 1000){
+          fill (255, 0, 0);
+          text("♥", x - 25, y + h / 2 + 1);
+        } else {
+          if (blink) {
+            fill (255, 0, 0);
+            text("X", x - 25, y + h / 2 + 1);
+          }
+        }
+      } else {
+        fill(255, 0, 0);
+        text("♥", x - 25, y + h / 2 + 1);
+      }
+    }
+    else if (isHover && clickedOptionIndex === -1){
+    fill(255, 128, 128);
+    text("♥", x - 25, y + h / 2 + 1);
+    }
   }
 
-  // Mostrar mensaje de resultado
-  if (mensaje !== "") {
-    fill(255);
-    textSize(22);
-    text(mensaje, width / 2, height / 2 + 200);
+  if (hoverNow !== -1 && hoverNow !== lastHoverIndex){
+    hoverSound.play();
   }
+
+  lastHoverIndex = hoverNow;
 }
 
 let exampleLevel = [
@@ -1292,6 +1539,9 @@ function handleTransition() {
 
   // Si ya está completamente negro...
   if (fadeDirection === 1 && fadeAlpha >= 255) {
+    if (!transitionSound.isPlaying()) {
+      transitionSound.play();
+    }
     fadeAlpha = 255;
     fadeDirection = -1;
 
