@@ -67,10 +67,6 @@ session_start();
         <?php endif; ?>
     </main>
 
-    <footer>
-        <p>&copy; 2024 Trivia Dungeon. Todos los derechos reservados.</p>
-    </footer>
-
     <script src="view/javascript/site.js"></script>
 </body>
 </html>
