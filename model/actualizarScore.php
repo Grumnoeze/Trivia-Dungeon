@@ -12,8 +12,8 @@ $email = $_SESSION['user_id'];
 $nuevo_score = intval($_POST['score']);
 
 // Obtener el score actual del usuario
-$query = "SELECT score FROM usuario WHERE email = ?";
-$stmt = $Ruta->prepare($query);
+$query = "SELECT score FROM usuarios WHERE email = ?";
+$stmt = $conn->prepare($query);
 $stmt->bind_param("s", $email);
 $stmt->execute();
 $result = $stmt->get_result();
@@ -23,7 +23,7 @@ $score_actual = intval($row['score']);
 
 // Solo actualizar si el nuevo puntaje es mayor
 if ($nuevo_score > $score_actual) {
-    $update = $Ruta->prepare("UPDATE usuario SET score = ? WHERE email = ?");
+    $update = $conn->prepare("UPDATE usuarios SET score = ? WHERE email = ?");
     $update->bind_param("is", $nuevo_score, $email);
     if ($update->execute()) {
         echo "updated";
@@ -36,5 +36,5 @@ if ($nuevo_score > $score_actual) {
 }
 
 $stmt->close();
-$Ruta->close();
+$conn->close();
 ?>

@@ -120,7 +120,7 @@ function sumarPuntos() {
 }
 
 function actualizarScore(score) {
-  fetch("http://localhost/Trivia-Dungeon/model/actualizarScore", {
+  fetch("http://localhost/Trivia-Dungeon/model/actualizarScore.php", {
     method: "POST",
     headers: {
       "Content-Type": "application/x-www-form-urlencoded"
