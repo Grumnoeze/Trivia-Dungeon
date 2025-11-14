@@ -20,6 +20,11 @@
 }
 
 @font-face {
+    font-family: 'TTNorms';
+    src: url(../src/fonts/TTNormsProVariable.ttf);
+}
+
+@font-face {
     font-family: 'Proxima Nova Light';
     src: url(../src/fonts/proximanova_light.otf);
 }
@@ -63,12 +68,12 @@ li a img{
 }
 
 li a p{
-    padding: 7.5px 16px;
-    font-size: 13px;
-    font-weight: 600;
-    letter-spacing: .2em;
+    font-family: 'TTNorms', sans-serif;
+    padding: 10px 20px;
+    font-size: 16px;
+    font-weight: bold;
+    letter-spacing: 1.5px;
     text-transform: uppercase;
-    font-family: 'W9500';
     color: #F9F9F9;
     border-radius: 6.4px;
 }
@@ -91,20 +96,23 @@ li a:hover p{
 }
 
 li a span{
-    padding: 7.5px 16px;
-    font-size: 13px;
-    font-weight: 600;
-    letter-spacing: .2em !important;
+    font-family: 'TTNorms', sans-serif;
+    padding: 11px 13px;
+    font-size: 15px;
+    font-weight: bold;
+    letter-spacing: 1px;
     text-transform: uppercase;
-    font-family: 'W9500';
-    color: #111;
+    color: #F9F9F9;
+    border: 2px solid #F9F9F9;
     background: #5023d3;
-    border-radius: 6.4px;
+    border-radius: 3px;
     transition: color .3s ease;
+    box-shadow: 0 4px 0 rgba(0, 0, 0, 0.4);
 }
 
-li a:hover span{
-    color: #F9F9F9;
+li a:active span{
+    transform: translateY(3px);
+    box-shadow: 0 1px 0 rgba(0, 0, 0, 0.4);
 }
 
 .hero{
@@ -134,19 +142,20 @@ li a:hover span{
 .hero div p{
     max-width: 382px;
     text-align: center;
-    font-size: 16px;
-    line-height: 1.7em !important;
-    font-family: 'Proxima Nova Light';
+    font-size: 18px;
+    line-height: 26px;
+    font-family: 'TTNorms', sans-serif;
     color: #fff;
     margin-bottom: 24px;
     text-shadow: 0px 0px 5px #000;
 }
 
 .btn-play{
-    font-family: 'Press Start';
+    font-family: 'TTNorms', sans-serif;
+    font-weight: 800;
     display: inline-block;
-    font-size: 20px;
-    letter-spacing: 0.1em;
+    font-size: 44px;
+    letter-spacing: 2px;
     text-transform: uppercase;
     padding: 12px 32px;
     transition: 0.2s ease-out, color 0.3s ease-out;
@@ -183,27 +192,32 @@ li a:hover span{
     color: #F9F9F9;
 }
 
+.btn-play:hover{
+    transform: translate(4px, 4px);
+    box-shadow: 0px 0px #111;
+}
+
 /* Fondo del lightbox */
 .lightbox-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0,0,0,0.8);
+    background: rgba(255,255,255,0.6);
     display: none;
     justify-content: center;
     align-items: center;
     z-index: 999;
+    backdrop-filter: blur(5px);
 }
 
-/* Contenedor principal */
 .lightbox {
-    background: #111;
-    color: white;
+    background: #F9F9F9;
+    color: #111;
     padding: 40px;
-    border-radius: 8px;
     text-align: center;
     width: 900px;
     position: relative;
-    box-shadow: 0 0 30px rgba(0,0,0,0.5);
+    border: 3px solid #111;
+    box-shadow: 4px 4px #111;
 }
 
 /* Botón de cierre */
@@ -213,15 +227,17 @@ li a:hover span{
     right: 20px;
     background: transparent;
     border: none;
-    color: #d4b37f;
+    color: #111;
     font-size: 30px;
     cursor: pointer;
 }
 
 /* Estilo de texto */
 .lightbox h1 {
-    font-family: 'W9500';
-    font-style: italic;
+    font-family: 'TTNorms', sans-serif;
+    font-size: 44px;
+    letter-spacing: 2px;
+    font-weight: 800;
     margin-bottom: 100px;
     margin-top: 100px;
 }
@@ -235,36 +251,48 @@ li a:hover span{
 }
 
 .option p {
+    font-family: 'TTNorms', sans-serif;
     margin-bottom: 30px;
 }
 
 /* Botones principales */
 .btn {
+    font-family: 'TTNorms', sans-serif;
     display: inline-block;
     text-decoration: none;
     text-align: center;
-    padding: 12px 30px;
+    padding: 10px 20px;
+    letter-spacing: 1.5px;
     font-weight: bold;
     border: none;
-    border-radius: 4px;
     cursor: pointer;
+    transition: transform .1s ease, box-shadow .1s ease;
 }
 
 .create-btn {
-    background-color: #44c7f4;
-    color: #000;
+    background-color: #5023d3;
+    color: #111;
+    border: 3px solid #111;
+    box-shadow: 4px 4px #111;
 }
 
 .login-btn {
-    background-color: #c9a75b;
-    color: #000;
+    background-color: #8dedfe;
+    color: #111;
+    border: 3px solid #111;
+    box-shadow: 4px 4px #111;
 }
 
-.btn:hover {
-    opacity: 0.9;
+.btn:active {
+    box-shadow: 0px 0px;
+    transform: translate(4px, 4px);
 }
 
 /* Mostrar el lightbox */
 .lightbox-overlay.active {
     display: flex;
+}
+
+.login-section{
+    background: #111;
 }
