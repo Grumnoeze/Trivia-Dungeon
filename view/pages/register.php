@@ -28,33 +28,30 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Registro - Trivia Dungeon</title>
-    <link rel="stylesheet" href="">
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="shortcut icon" href="../src/images/favicon.png" type="image/x-icon">
+    <title>Document</title>
 </head>
 <body>
     <header>
-        <div class="logo">
-            <a href="../index.php"><img src="" alt=""></a>
-        </div>
-        <div class="nav">
-            <nav class="links">
-                <a href="">prueba 1</a>
-                <a href="">prueba 2</a>
-                <a href="">prueba 3</a>
-                <a href="">prueba 4</a>
-            </nav>
-            <nav class="login-contact">
-                <?php if (isset($_SESSION['username'])): ?>
-                    <a href="view/pages/login.php">
-                        <img src="" alt="">Acceder
-                    </a>
-                <?php else: ?>
-                    <a href="controller/logout.php">
-                        <img src="" alt="">Cerrar sesión
-                    </a>
-                <?php endif; ?>
-            </nav>
-        </div>
+        <nav>
+            <ul>
+                <li class="logo"><a href=""><img src="../src/logo_small.png" alt="" class="header-logo"></a></li>
+                <li><a href="../pages/game.html">
+                    <p>Juego</p>
+                    <div class="underline"></div>
+                </a></li>
+                <li><a href="https://github.com/Grumnoeze/Trivia-Dungeon.git">
+                    <p>Repositorio</p>
+                    <div class="underline"></div>
+                </a></li> 
+            </ul>
+            <ul class="account">
+                <li><a href="../pages/game.html">
+                    <span>jugar ahora</span>
+                </a></li>
+            </ul>
+        </nav>
     </header>
     <main>
         <div class="form-container">
