@@ -53,7 +53,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             </ul>
         </nav>
     </header>
-    <main>
+    <main class="register-main">
         <div class="form-container">
             <h2>Registro</h2>
             <form method="POST" action="../../model/registrarse.php">
@@ -68,7 +68,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
                 <button type="submit">Registrarse</button>
             </form>
-            <p>¿Ya tienes una cuenta? <a href="login.php">Inicia sesión aquí</a></p>
+            <p>¿Ya tienes una cuenta? <a href="login.php">Inicia sesión</a></p>
         </div>
     </main>
     <footer>

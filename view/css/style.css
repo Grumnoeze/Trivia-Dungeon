@@ -293,6 +293,102 @@ li a:active span{
     display: flex;
 }
 
+.form-container{
+    font-family: 'TTNorms', sans-serif;
+    background: #f9f9f9;
+    display: flex;
+    flex-direction: column;
+    margin: auto;
+    align-items: center;
+    border: 3px solid #111;
+    box-shadow: 4px 4px #111;
+    width: 40%;
+    gap: 25px;
+    margin-top: 50px;
+    padding: 25px;
+}
+
+.form-container form{
+    display: flex;
+    width: 75%;
+    flex-direction: column;
+    margin: auto;
+    gap: 10px;
+    font-family: 'TTNorms', sans-serif;
+}
+
+.form-container form button{
+    background: #5023d3;
+    border: 3px solid #111;
+    box-shadow: 4px 4px #111;
+    width: 75%;
+    margin: auto;
+    margin-top: 20px;
+    padding: 20px;
+    text-transform: uppercase;
+    font-weight: 800;
+    letter-spacing: 1.5px;
+    font-size: 16px;
+    transition: transform .1s ease, box-shadow .1s ease;
+}
+
+.form-container form button:active{
+    transform: translate(4px, 4px);
+    box-shadow: 0px 0px #111;
+}
+
+.form-container form input{
+    border: 2px solid #111;
+    padding: 15px;
+    box-shadow: 3px 3px #111;
+}
+
 .login-section{
-    background: #111;
+    font-family: 'TTNorms', sans-serif;
+    background: #f9f9f9;
+    display: flex;
+    flex-direction: column;
+    margin: auto;
+    align-items: center;
+    border: 3px solid #111;
+    box-shadow: 4px 4px #111;
+    width: 40%;
+    gap: 25px;
+    margin-top: 50px;
+    padding: 25px;
+}
+
+.login-section form{
+    display: flex;
+    width: 75%;
+    flex-direction: column;
+    margin: auto;
+    gap: 10px;
+    font-family: 'TTNorms', sans-serif;
+}
+
+.login-section form button{
+    background: #5023d3;
+    border: 3px solid #111;
+    box-shadow: 4px 4px #111;
+    width: 75%;
+    margin: auto;
+    margin-top: 20px;
+    padding: 20px;
+    text-transform: uppercase;
+    font-weight: 800;
+    letter-spacing: 1.5px;
+    font-size: 16px;
+    transition: transform .1s ease, box-shadow .1s ease;
+}
+
+.login-section form button:active{
+    transform: translate(4px, 4px);
+    box-shadow: 0px 0px #111;
+}
+
+.login-section form input{
+    border: 2px solid #111;
+    padding: 15px;
+    box-shadow: 3px 3px #111;
 }
