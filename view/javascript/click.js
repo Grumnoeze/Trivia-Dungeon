@@ -41,6 +41,12 @@ let dificultad = 0;
 let isQuestionActive = false;
 let currentQuestion = null;
 
+let btnWidth = 200;
+let btnHeight = 50;
+let espacio=20;
+let btnX;
+let btnY1, btnY2, btnY3;
+
 // let questions = [
 //   {
 //     text: "¿Cuál es la capital de Francia?",
@@ -194,15 +200,17 @@ function actualizarScore(score) {
 function mousePressed() {
   if (!juegoIniciado) {
     // elegir dificultad
-    if (clickEnBoton(250, 150, 200, 40)) {
+    if (clickEnBoton(btnX, btnY1, btnWidth, btnHeight)) {
       clickSound.play();
-      seleccionarDificultad(1)
-    } else if (clickEnBoton(250, 210, 200, 40)) {
+      seleccionarDificultad(1);
+
+    } else if (clickEnBoton(btnX, btnY2, btnWidth, btnHeight)) {
       clickSound.play();
-      seleccionarDificultad(2)
-    } else if (clickEnBoton(250, 270, 200, 40)) {
+      seleccionarDificultad(2);
+
+    } else if (clickEnBoton(btnX, btnY3, btnWidth, btnHeight)) {
       clickSound.play();
-      seleccionarDificultad(3)
+      seleccionarDificultad(3);
     }
 
     
@@ -1335,12 +1343,19 @@ function draw() {
     background(220);
     textSize(24);
     fill(0);
-    text("Selecciona la dificultad:", 200, 100);
+    textAlign(CENTER, CENTER);
+    text("Selecciona la dificultad:",  width / 2, height / 3 - 80);
+
+    btnX = width / 2 - btnWidth / 2;
+    btnY1 = height/3;
+    btnY2 = height/3 + btnHeight + espacio;
+    btnY3 = height / 3 + (btnHeight + espacio)*2;
+    espacio= 20;
 
     // botones de dificultad
-    mostrarBoton("Fácil (1)", 250, 150, 200, 40);
-    mostrarBoton("Medio (2)", 250, 210, 200, 40);
-    mostrarBoton("Difícil (3)", 250, 270, 200, 40);
+    mostrarBoton("Fácil (1)", btnX, btnY1, btnWidth, btnHeight);
+    mostrarBoton("Medio (2)", btnX, btnY2, btnWidth, btnHeight);
+    mostrarBoton("Difícil (3)", btnX, btnY3, btnWidth, btnHeight);
     return;
   }
 
