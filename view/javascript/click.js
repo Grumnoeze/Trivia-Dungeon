@@ -82,7 +82,11 @@ let player = {
   dir: "down",
   hearts: 3,
   maxHearts: 3,
-  score: 0
+  score: 0,
+  invulnerable: false,
+  invulStart: 0,
+  invulDuration: 1000,
+  attackHitRegistered: false
 };
 
 let wallTop, wallBottom, wallLeft, wallRight;
@@ -99,6 +103,38 @@ let musicaPregunta;
 let musicaActual = null;
 let gameOver = false;
 
+function recibirDaño(enemigo) {
+  if (player.invulnerable || gameOver) return;
+
+  player.hearts = max(0, player.hearts - 1);
+
+  // activar invulnerabilidad
+  player.invulnerable = true;
+  player.invulStart = millis();
+}
+
+function manejarInvulnerabilidad() {
+  if (!player.invulnerable) return;
+  if (millis() - player.invulStart > player.invulDuration) {
+    player.invulnerable = false;
+  }
+}
+
+function checkEnemyDamage() {
+  if (player.invulnerable || gameOver) return;
+
+  let distColision = tileSize * 0.5;
+
+  for (let e of enemies) {
+    let d = dist(player.x, player.y, e.x, e.y);
+
+    if (d < distColision) {
+      recibirDaño(e);
+      return; // solo un golpe
+    }
+  }
+}
+
 function keyPressed() {
   if (gameOver && key === 'r' || key === 'R') {
     location.reload();
@@ -109,6 +145,7 @@ function seleccionarDificultad(nivel) {
   dificultad = nivel;
   juegoIniciado = true;
 }
+
 function sumarPuntos() {
   if (dificultad === 1) {
     player.score += 10;
@@ -116,6 +153,16 @@ function sumarPuntos() {
     player.score += 50;
   } else if (dificultad === 3) {
     player.score += 100;
+  }
+}
+
+function sumarPuntosEnemigos() {
+  if (dificultad === 1) {
+    player.score += 5;
+  } else if (dificultad === 2) {
+    player.score += 10;
+  } else if (dificultad === 3) {
+    player.score += 20;
   }
 }
 
@@ -609,6 +656,30 @@ function handleAttack() {
     const elapsed = millis() - attackStartTime;
     const frameTime = attackDuration / 5; // Divide la duración del ataque en 5 partes
 
+    let attackX = player.x;
+    let attackY = player.y;
+
+    if (player.dir === "up")    attackY -= tileSize;
+    if (player.dir === "down")  attackY += tileSize;
+    if (player.dir === "left")  attackX -= tileSize;
+    if (player.dir === "right") attackX += tileSize;
+
+    // Tamaño del área de impacto
+    let hitRadius = tileSize * 0.6;  // ajustable
+
+    for (let i = enemies.length - 1; i >= 0; i--) {
+      let e = enemies[i];
+
+      // Distancia entre el punto del ataque y el enemigo
+      let d = dist(attackX, attackY, e.x, e.y);
+
+      // Si está dentro del tile atacado → eliminar
+      if (d < hitRadius) {
+        enemies.splice(i, 1); // ❌ enemigo eliminado
+        sumarPuntosEnemigos();
+      }
+    }
+    
     // Secuencia: 1 → 3 → 2 → 3 → 1
     let frame;
     if (elapsed < frameTime) frame = 1;
@@ -631,6 +702,7 @@ function handleAttack() {
       else if (player.dir === "left") currentPlayerImg = playerSprites.left1;
       else if (player.dir === "right") currentPlayerImg = playerSprites.right1;
     }
+    
   }
 }
 
@@ -708,6 +780,16 @@ function drawPlayer() {
 
   imageMode(CENTER);
 
+  if (player.invulnerable) {
+    if (Math.floor(millis() / 80) % 2 === 0) {
+      tint(255, 100);
+    } else {
+      noTint();
+    }
+  } else {
+    noTint();
+  }
+
   // Si está atacando, dibujar el sprite extendido según dirección
   if (isAttacking) {
     switch (player.dir) {
@@ -732,6 +814,7 @@ function drawPlayer() {
         break;
     }
   }
+  
   else {
     // Si no está atacando, sprite normal 16x16
     image(currentPlayerImg, player.x, player.y, tileSize, tileSize);
@@ -1275,6 +1358,8 @@ function draw() {
 
   handleAttack();
   handlePlayerMovement();
+  
+  manejarInvulnerabilidad();
 
   drawPlayer();
 
@@ -1634,6 +1719,7 @@ const __orig_draw_for_levels = draw;
 draw = function () {
   __orig_draw_for_levels.apply(this, arguments);
   updateEnemies();
+  checkEnemyDamage();
 
   checkDoorTransition();
   handleTransition();
