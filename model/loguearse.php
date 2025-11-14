@@ -14,10 +14,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
     if ($result->num_rows === 1) {
         $usuario = $result->fetch_assoc();
-        if (password_verify($contraseña, $usuario['contraseña'])) {
+        if (password_verify($contraseña, $usuario['contraseña'])) { 
             $_SESSION['user_id'] = $usuario['email'];
             $_SESSION['username'] = $usuario['nombre'];
-            header("Location: ../index.php");
+            header("Location: ../view/pages/game.php");
             exit();
         } else {
             echo "<script>alert('Contraseña incorrecta.'); window.location.href='../view/pages/login.php';</script>";

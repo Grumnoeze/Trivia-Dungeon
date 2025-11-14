@@ -18,8 +18,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $usuario = $result->fetch_assoc();
         if (password_verify($contraseña, $usuario['contraseña'])) {
             $_SESSION['user_id'] = $usuario['email'];
-            $_SESSION['username'] = $usuario['nombre'];
-            header("Location: ../../index.php");
+            $_SESSION['username'] = $usuario['username'];
+            header("Location: game.php");
             exit();
         } else {
             echo "<script>alert('Contraseña incorrecta.'); window.location.href='login.php';</script>";
