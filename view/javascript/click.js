@@ -472,21 +472,6 @@ function preload() {
 
   pixelFont = loadFont("../src/fonts/ari-w9500.ttf");
   questionFont = loadFont("../src/fonts/PressStart2P.ttf");
-
-  attackSounds[0] = loadSound("../src/sounds/snd_board_sword1.wav");
-  attackSounds[1] = loadSound("../src/sounds/snd_board_sword2.wav");
-  attackSounds[2] = loadSound("../src/sounds/snd_board_sword3.wav");
-  transitionSound = loadSound("../src/sounds/snd_trans.wav");
-  keyPickupSound = loadSound("../src/sounds/snd_cuest_inicio.wav");
-  clickSound = loadSound("../src/sounds/snd_resp_selec.wav");
-  hoverSound = loadSound("../src/sounds/snd_resp_mov.wav");
-  correctSound = loadSound("../src/sounds/snd_resp_correcta.wav")
-  incorrectSound = loadSound("../src/sounds/snd_resp_incorrecta.wav")
-
-  musicaJuego = loadSound("../src/music/board_sword_music.ogg");
-  musicaPregunta = loadSound("../src/music/TV_GAME.ogg");
-  correctSong = loadSound("../src/music/baci_perugina.ogg");
-  incorrectSong = loadSound("../src/music/tv_results_screen.ogg")
 }
 
 
@@ -1254,6 +1239,22 @@ function collidesWithWallAtPixel(px, py) {
 // setup
 
 function setup() {
+  userStartAudio();
+
+  attackSounds[0] = loadSound("../src/sounds/snd_board_sword1.wav");
+  attackSounds[1] = loadSound("../src/sounds/snd_board_sword2.wav");
+  attackSounds[2] = loadSound("../src/sounds/snd_board_sword3.wav");
+  transitionSound = loadSound("../src/sounds/snd_trans.wav");
+  keyPickupSound = loadSound("../src/sounds/snd_cuest_inicio.wav");
+  clickSound = loadSound("../src/sounds/snd_resp_selec.wav");
+  hoverSound = loadSound("../src/sounds/snd_resp_mov.wav");
+  correctSound = loadSound("../src/sounds/snd_resp_correcta.wav")
+  incorrectSound = loadSound("../src/sounds/snd_resp_incorrecta.wav")
+
+  musicaJuego = loadSound("../src/music/board_sword_music.ogg");
+  musicaPregunta = loadSound("../src/music/TV_GAME.ogg");
+  correctSong = loadSound("../src/music/baci_perugina.ogg");
+  incorrectSong = loadSound("../src/music/tv_results_screen.ogg")
 
   const saved = loadBase();
 
