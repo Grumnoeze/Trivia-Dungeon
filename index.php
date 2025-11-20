@@ -15,7 +15,7 @@ session_start();
         <nav>
             <ul>
                 <li class="logo"><a href=""><img src="view/src/logo_small.png" alt="" class="header-logo"></a></li>
-                <li><a href="view/pages/game.html">
+                <li><a href="view/pages/game.php">
                     <p>Juego</p>
                     <div class="underline"></div>
                 </a></li>
@@ -56,7 +56,7 @@ session_start();
             <div>
                 <img src="view/src/images/heropage-logo.png" alt="">
                 <p>Trivia Dungeon es un RPG Roguelike en el que juegas como Caine, un caballero que en búsqueda de fama ingresó a una mazmorra. Sin embargo, esta mazmorra no era como las demás; ahora, deberá demostrar no sólo su fuerza, sino su intelecto si es que quiere salir vivo.</p>
-                <a href="view/pages/game.html" class="btn-play">
+                <a href="view/pages/game.php" class="btn-play">
                     <div class="background"></div>
                     <span>jugar ahora</span>
                 </a>
