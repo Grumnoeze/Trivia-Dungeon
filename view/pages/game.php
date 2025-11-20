@@ -9,14 +9,14 @@ session_start();
     <link rel="stylesheet" href="../css/style.css">
     <title>Document</title>
 
-    <script>
-        function touchStarted() {
-        let ctx = getAudioContext();
-        if (ctx.state !== 'running') {
-            ctx.resume();
-        }
-        }
-    </script>
+<script>
+window.addEventListener("click", () => {
+    if (getAudioContext().state !== "running") {
+        getAudioContext().resume();
+    }
+});
+</script>
+
 
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
