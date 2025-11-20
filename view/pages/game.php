@@ -10,11 +10,13 @@ session_start();
     <title>Document</title>
 
 <script>
-window.addEventListener("click", () => {
-    if (getAudioContext().state !== "running") {
-        getAudioContext().resume();
+document.addEventListener("click", () => {
+    const ctx = window.getAudioContext ? getAudioContext() : null;
+    if (ctx && ctx.state !== "running") {
+        console.log("Activando AudioContext...");
+        ctx.resume();
     }
-});
+}, { once: true });
 </script>
 
 
