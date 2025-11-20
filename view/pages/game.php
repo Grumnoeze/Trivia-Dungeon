@@ -8,8 +8,8 @@ session_start();
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="../css/style.css">
     <title>Document</title>
-    <script src="../libraries/p5.js"></script>
-    <script src="../libraries/p5.sound.js"></script>
+    <script src="../libraries/p5.min.js"></script>
+    <script src="../libraries/p5.sound.min.js"></script>
 
     <script src="../javascript/click.js"></script>
 
