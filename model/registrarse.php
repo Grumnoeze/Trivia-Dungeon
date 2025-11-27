@@ -4,8 +4,19 @@ include '../controller/conexionBD.php';
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $nombre = trim($_POST['username']);
     $email = trim($_POST['email']);
-    $contraseña = password_hash($_POST['password'], PASSWORD_DEFAULT);
+    $passwordPlain = $_POST['password'];
 
+    // Validar contraseña: mínimo 8 caracteres, al menos un número y un carácter especial
+    if (!preg_match('/^(?=.*[0-9])(?=.*[!@#$%^&*()_+=\-{}
+
+    \[\]
+
+    :;,.<>?]).{8,}$/', $passwordPlain)) {
+        echo "<script>alert('La contraseña debe tener mínimo 8 caracteres, incluir al menos un número y un carácter especial.'); window.location.href='../view/pages/register.php';</script>";
+        exit();
+    }
+
+    $contraseña = password_hash($passwordPlain, PASSWORD_DEFAULT);
     // Validar dominios de correo
     $dominiosPermitidos = ["gmail.com", "outlook.com", "hotmail.com", "yahoo.com"];
     $dominioEmail = substr(strrchr($email, "@"), 1);
@@ -81,9 +92,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             exit();
         }
     }
-
-
-
     }
 
     // Verificar si ya existe usuario o email
