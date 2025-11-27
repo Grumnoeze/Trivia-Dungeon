@@ -1,5 +1,7 @@
 <?php
 session_start();
+include "controller/conexionBD.php"; // importante incluir la conexión
+
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -34,23 +36,6 @@ session_start();
         </nav>
     </header>
 
-    <div id="lightbox-overlay" class="lightbox-overlay">
-        <div class="lightbox">
-            <button class="close-btn" id="close-lightbox">&times;</button>
-            <h1>PREPÁRATE PARA JUGAR</h1>
-            <div class="options">
-                <div class="option">
-                    <p>No tengo cuenta</p>
-                    <a href="view/pages/register.php" class="btn create-btn">CREAR UNA</a>
-                </div>
-                <div class="option">
-                    <p>Tengo una cuenta</p>
-                    <a href="view/pages/login.php" class="btn login-btn">INICIAR SESIÓN</a>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <main>
         <section class="hero">
             <div>
@@ -62,9 +47,37 @@ session_start();
                 </a>
             </div>
         </section>
+
         <?php if (isset($_SESSION['username'])): ?>
             <p class="welcome-msg">Bienvenido, <?= htmlspecialchars($_SESSION['username']) ?>!</p>
         <?php endif; ?>
+
+        <!-- 🔥 Ranking de usuarios -->
+        <section class="ranking">
+            <h2>Ranking de Putajes</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Usuario</th>
+                        <th>Putaje</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php
+                    $sql = "SELECT nombre, score FROM usuarios ORDER BY score DESC";
+                    $result = $conn->query($sql);
+
+                    if ($result && $result->num_rows > 0) {
+                        while ($row = $result->fetch_assoc()) {
+                            echo "<tr><td>" . htmlspecialchars($row['nombre']) . "</td><td>" . $row['score'] . "</td></tr>";
+                        }
+                    } else {
+                        echo "<tr><td colspan='2'>No hay usuarios registrados con putaje</td></tr>";
+                    }
+                    ?>
+                </tbody>
+            </table>
+        </section>
     </main>
 
     <script src="view/javascript/site.js"></script>

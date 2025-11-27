@@ -64,7 +64,16 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 <input type="text" id="username" name="username" required>
 
                 <label for="password">Contraseña:</label>
-                <input type="password" id="password" name="password" required>
+                <p class="password-info">La contraseña debe tener mínimo 8 caracteres, incluir al menos un número y un carácter especial.</p>
+                <input type="password" id="password" name="password" 
+                    required 
+                    pattern="^(?=.*[0-9])(?=.*[!@#$%^&*()_+=\-{}
+
+                \[\]
+
+                :;,.<>?]).{8,}$"
+                    title="Debe tener mínimo 8 caracteres, un número y un carácter especial">
+
 
                 <button type="submit">Registrarse</button>
             </form>
