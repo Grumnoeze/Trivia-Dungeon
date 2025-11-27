@@ -68,6 +68,7 @@ let btnY1, btnY2, btnY3;
 let preguntaActual;
 let opciones = [];
 let respuestaCorrecta;
+let usadas = []; 
 
 let usedKeys = []; // IDs o posiciones de llaves ya usadas
 let keyPickupSound;
@@ -302,22 +303,35 @@ function shuffle(array) {
 }
 
 function obtenerPregunta() {
-  fetch("http://10.0.7.79/Trivia-Dungeon/model/obtener_preguntas.php?dificultad=" + dificultad)
+  let usadasParam = usadas.length > 0 ? "&usadas=" + usadas.join(",") : "";
+
+  fetch("http://10.0.7.79/Trivia-Dungeon/model/obtener_preguntas.php?dificultad=" + dificultad + usadasParam)
     .then(res => res.json())
     .then(data => {
-      console.log("Respuesta del servidor:", data); // <-- debug
+      console.log("Respuesta del servidor:", data);
+
       if (data.error) {
         preguntaActual = data.error;
         opciones = [];
         return;
       }
+
+      // Guardamos el ID correcto
+      usadas.push(data.id);
+
       preguntaActual = data.pregunta;
       respuestaCorrecta = data.correcta;
+
       opciones = [data.correcta, data.falsa1, data.falsa2, data.falsa3];
       opciones = shuffle(opciones);
+
       mensaje = "";
+    })
+    .catch(error => {
+      console.log("Error al obtener pregunta:", error);
     });
 }
+
 
 function drawUI() {
   noStroke(); fill(0);
@@ -1634,7 +1648,12 @@ let currentRoomY = 1; // fila actual
 exampleLevel = mapGrid[currentRoomY][currentRoomX];
 
 function loadCurrentRoom() {
-  exampleLevel = mapGrid[currentRoomY][currentRoomX];
+  const sala = mapGrid[currentRoomY][currentRoomX];
+
+  // Cambia el contenido interno aleatoriamente en esta sesión
+  randomizarInteriorSala(sala);
+
+  exampleLevel = sala;
   loadLevel(exampleLevel);
 }
 
@@ -1726,6 +1745,69 @@ function handleTransition() {
     isTransitioning = false;
   }
 }
+
+
+function randomizarInteriorSala(sala) {
+  const alto = sala.length;
+  const ancho = sala[0].length;
+
+  let posicionesInternas = [];
+
+  // Guardamos posiciones internas válidas
+  for (let y = 2; y < alto - 2; y++) {
+    for (let x = 2; x < ancho - 2; x++) {
+      let tile = sala[y][x];
+      if ([0, 1, 3, 4].includes(tile)) {
+        posicionesInternas.push({ x, y });
+        sala[y][x] = 0; // limpiar todo
+      }
+    }
+  }
+
+  shuffle(posicionesInternas);
+
+  const tomarPos = (n) => posicionesInternas.splice(0, n);
+
+  // -----------------------------------
+  // ENEMIGOS (3)
+  let numEnemigos = floor(random(1, 6));
+  numEnemigos = min(numEnemigos, posicionesInternas.length);
+  let enemigosPos = tomarPos(numEnemigos);
+  enemigosPos.forEach(pos => sala[pos.y][pos.x] = 3);
+
+  // -----------------------------------
+  // LLAVES (4)
+  let numLlaves = floor(random(1, 4));
+  numLlaves = min(numLlaves, posicionesInternas.length);
+  let llavesPos = tomarPos(numLlaves);
+
+  // Función para evitar llaves en fila o columna
+  function llavesInvalidas(posArr) {
+    const todasMismaFila = posArr.every(p => p.y === posArr[0].y);
+    const todasMismaColumna = posArr.every(p => p.x === posArr[0].x);
+    return todasMismaFila || todasMismaColumna;
+  }
+
+  // Si están alineadas → reprocesar hasta que no lo estén
+  let contadorSeguridad = 30;
+  while (llavesInvalidas(llavesPos) && contadorSeguridad > 0) {
+    posicionesInternas.push(...llavesPos);
+    shuffle(posicionesInternas);
+    llavesPos = tomarPos(numLlaves);
+    contadorSeguridad--;
+  }
+
+  llavesPos.forEach(pos => sala[pos.y][pos.x] = 4);
+
+  // -----------------------------------
+  // Resto: suelo (0) o muro interno (1)
+  posicionesInternas.forEach(pos => {
+    sala[pos.y][pos.x] = random([0, 1]);
+  });
+}
+ 
+
+
 
 
 // -----------------------------
