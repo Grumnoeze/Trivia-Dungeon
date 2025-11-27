@@ -173,7 +173,7 @@ function sumarPuntosEnemigos() {
 }
 
 function actualizarScore(score) {
-  fetch("http://localhost/Trivia-Dungeon/model/actualizarScore.php", {
+  fetch("http://10.0.7.79/Trivia-Dungeon/model/actualizarScore.php", {
     method: "POST",
     headers: {
       "Content-Type": "application/x-www-form-urlencoded"
@@ -201,15 +201,15 @@ function mousePressed() {
   if (!juegoIniciado) {
     // elegir dificultad
     if (clickEnBoton(btnX, btnY1, btnWidth, btnHeight)) {
-      clickSound.play();
+      // clickSound.play();
       seleccionarDificultad(1);
 
     } else if (clickEnBoton(btnX, btnY2, btnWidth, btnHeight)) {
-      clickSound.play();
+      // clickSound.play();
       seleccionarDificultad(2);
 
     } else if (clickEnBoton(btnX, btnY3, btnWidth, btnHeight)) {
-      clickSound.play();
+      // clickSound.play();
       seleccionarDificultad(3);
     }
 
@@ -229,7 +229,7 @@ function mousePressed() {
         clickedOptionIndex = i;
         clickTime = millis();
         
-        clickSound.play();
+        // clickSound.play();
 
         setTimeout(() => {
           let respuestaSeleccionada = opciones[i];
@@ -237,29 +237,29 @@ function mousePressed() {
 
           if (respuestaSeleccionada === respuestaCorrecta){
             answerState = "correct";
-            correctSound.play();
+            // correctSound.play();
           } else {
             answerState = "incorrect";
-            incorrectSound.play();
+            // incorrectSound.play();
           }
 
           setTimeout(() => {
-            detenerTodas();
+            // detenerTodas();
 
-            if (answerState === "correct"){
-              correctSong.play();
-              correctSong.setLoop(false);
-            } else {
-              incorrectSong.play();
-              incorrectSong.setLoop(false);
-            }
+            // if (answerState === "correct"){
+            //   correctSong.play();
+            //   correctSong.setLoop(false);
+            // } else {
+            //   incorrectSong.play();
+            //   incorrectSong.setLoop(false);
+            // }
 
             setTimeout(() =>{
-              if (answerState === "correct"){
-                correctSong.stop();
-              } else {
-                incorrectSong.stop();
-              }
+              // if (answerState === "correct"){
+              //   correctSong.stop();
+              // } else {
+              //   incorrectSong.stop();
+              // }
 
               cerrarCuestionario();
               clickedOptionIndex = -1;
@@ -272,26 +272,26 @@ function mousePressed() {
   }
 }
 
-function manejarMusica(modo){
-  if (modo === "pregunta"){
-    if (musicaActual !== musicaPregunta){
-      detenerTodas();
-      musicaPregunta.loop();
-      musicaActual = musicaPregunta;
-    }
-  } else if (modo === "juego"){
-    if (musicaActual !== musicaJuego){
-      detenerTodas();
-      musicaJuego.loop();
-      musicaActual = musicaJuego;
-    }
-  }
-}
+// function manejarMusica(modo){
+//   if (modo === "pregunta"){
+//     if (musicaActual !== musicaPregunta){
+//       detenerTodas();
+//       musicaPregunta.loop();
+//       musicaActual = musicaPregunta;
+//     }
+//   } else if (modo === "juego"){
+//     if (musicaActual !== musicaJuego){
+//       detenerTodas();
+//       musicaJuego.loop();
+//       musicaActual = musicaJuego;
+//     }
+//   }
+// }
 
-function detenerTodas() {
-  if (musicaJuego.isPlaying()) musicaJuego.stop();
-  if (musicaPregunta.isPlaying()) musicaPregunta.stop();
-}
+// function detenerTodas() {
+//   if (musicaJuego.isPlaying()) musicaJuego.stop();
+//   if (musicaPregunta.isPlaying()) musicaPregunta.stop();
+// }
 
 function shuffle(array) {
   for (let i = array.length - 1; i > 0; i--) {
@@ -302,7 +302,7 @@ function shuffle(array) {
 }
 
 function obtenerPregunta() {
-  fetch("http://localhost/Trivia-Dungeon/model/obtener_preguntas.php?dificultad=" + dificultad)
+  fetch("http://10.0.7.79/Trivia-Dungeon/model/obtener_preguntas.php?dificultad=" + dificultad)
     .then(res => res.json())
     .then(data => {
       console.log("Respuesta del servidor:", data); // <-- debug
@@ -364,7 +364,7 @@ function verificarRespuesta(respuesta) {
 }
 
 function cerrarCuestionario() {
-  detenerTodas();
+  // detenerTodas();
   isQuestionActive = false;
   preguntaActual = null;
   opciones = [];
@@ -601,7 +601,7 @@ function handlePlayerMovement() {
     let d = dist(player.x, player.y, k.x, k.y);
 
     if (d < tileSize * 0.5 && !isQuestionActive) {
-      if (!keyPickupSound.isPlaying()) keyPickupSound.play();
+      // if (!keyPickupSound.isPlaying()) keyPickupSound.play();
       keys.splice(i, 1);// eliminar la llave del mapa
       setTimeout(() => {
         showQuestion();       // mostrar pregunta
@@ -617,25 +617,25 @@ function showQuestion() {
   obtenerPregunta();
 }
 
-function reproducirSonidoAtaque() {
-  // Elegir un índice aleatorio entre 0 y 2
-  let randomIndex = floor(random(attackSounds.length));
+// function reproducirSonidoAtaque() {
+//   // Elegir un índice aleatorio entre 0 y 2
+//   let randomIndex = floor(random(attackSounds.length));
 
-  // Detener todos los sonidos anteriores para evitar superposición
-  for (let s of attackSounds) {
-    if (s.isPlaying()) s.stop();
-  }
+//   // Detener todos los sonidos anteriores para evitar superposición
+//   for (let s of attackSounds) {
+//     if (s.isPlaying()) s.stop();
+//   }
 
-  // Reproducir el sonido elegido
-  attackSounds[randomIndex].play();
-}
+//   // Reproducir el sonido elegido
+//   attackSounds[randomIndex].play();
+// }
 
 function handleAttack() {
   // Iniciar ataque si se presiona J o Z y no está atacando
   if ((keyIsDown(74) || keyIsDown(90)) && !isAttacking) { // 74 = J, 90 = Z
     isAttacking = true;
     attackStartTime = millis();
-    reproducirSonidoAtaque();
+    // reproducirSonidoAtaque();
 
     // Guardamos la dirección actual del jugador
     if (currentPlayerImg === playerSprites.up1 || currentPlayerImg === playerSprites.up2) player.dir = "up";
@@ -1239,8 +1239,8 @@ function collidesWithWallAtPixel(px, py) {
 // setup
 
 function setup() {
-  userStartAudio();
-
+  // userStartAudio();
+/*
   attackSounds[0] = loadSound("../src/sounds/snd_board_sword1.wav");
   attackSounds[1] = loadSound("../src/sounds/snd_board_sword2.wav");
   attackSounds[2] = loadSound("../src/sounds/snd_board_sword3.wav");
@@ -1255,7 +1255,7 @@ function setup() {
   musicaPregunta = loadSound("../src/music/TV_GAME.ogg");
   correctSong = loadSound("../src/music/baci_perugina.ogg");
   incorrectSong = loadSound("../src/music/tv_results_screen.ogg")
-
+*/
   const saved = loadBase();
 
   if (!isBrowserFullscreen() && !document.fullscreenElement) {
@@ -1327,7 +1327,7 @@ function draw() {
     textSize(20);
     fill(255);
     text("Presiona R para reiniciar", width / 2, height / 2 + 20);
-    manejarMusica("gameover");
+    // manejarMusica("gameover");
     noLoop(); // 🔹 Detiene draw() para congelar el juego
     return;
   }
@@ -1384,9 +1384,9 @@ function draw() {
 
   if (isQuestionActive && preguntaActual) {
     drawQuestionUI();
-    manejarMusica("pregunta");
+    // manejarMusica("pregunta");
   } else {
-    manejarMusica("juego");
+    // manejarMusica("juego");
   }
   drawVignette();
 }
@@ -1496,9 +1496,9 @@ function drawQuestionUI() {
     }
   }
 
-  if (hoverNow !== -1 && hoverNow !== lastHoverIndex){
-    hoverSound.play();
-  }
+  // if (hoverNow !== -1 && hoverNow !== lastHoverIndex){
+  //   hoverSound.play();
+  // }
 
   lastHoverIndex = hoverNow;
 }
@@ -1703,9 +1703,9 @@ function handleTransition() {
 
   // Si ya está completamente negro...
   if (fadeDirection === 1 && fadeAlpha >= 255) {
-    if (!transitionSound.isPlaying()) {
-      transitionSound.play();
-    }
+    // if (!transitionSound.isPlaying()) {
+    //   transitionSound.play();
+    // }
     fadeAlpha = 255;
     fadeDirection = -1;
 

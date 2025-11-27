@@ -1,5 +1,6 @@
 <?php
 session_start();
+
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -9,20 +10,8 @@ session_start();
     <link rel="stylesheet" href="../css/style.css">
     <title>Document</title>
 
-<script>
-document.addEventListener("click", () => {
-    const ctx = window.getAudioContext ? getAudioContext() : null;
-    if (ctx && ctx.state !== "running") {
-        console.log("Activando AudioContext...");
-        ctx.resume();
-    }
-}, { once: true });
-</script>
-
-
-
 <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/addons/p5.sound.min.js"></script>
+<!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/addons/p5.sound.min.js"></script> -->
 <script src="../javascript/click.js"></script>
 
 
